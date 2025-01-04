@@ -108,7 +108,6 @@
 avatar-layout-tool/
 ├── image_arranger.py    # 主程序文件
 ├── run.py              # 启动文件
-├── run_fonts.bat       # 字体扫描批处理
 ├── requirements.txt    # 项目依赖
 ├── LICENSE            # MIT 许可证
 ├── .gitignore         # Git 忽略文件

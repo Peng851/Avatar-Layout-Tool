@@ -1256,7 +1256,7 @@ class ImageArranger:
                     fits, new_line = add_word_to_line(current_word, current_line)
                     if fits:
                         current_line = new_line
-                else:
+            else:
                     if current_line:
                         lines.append(current_line)
                     current_line = current_word
@@ -1268,7 +1268,7 @@ class ImageArranger:
                 current_line = new_line
             else:
                 if current_line:
-                    lines.append(current_line)
+                lines.append(current_line)
                 current_line = char
         else:
             if char.isspace():
@@ -1292,8 +1292,8 @@ class ImageArranger:
             if fits:
                 current_line = new_line
             else:
-                if current_line:
-                    lines.append(current_line)
+        if current_line:
+            lines.append(current_line)
                 current_line = current_word
         
         # 添加最后一行
@@ -1316,12 +1316,12 @@ class ImageArranger:
             if row_counts[0] < max_per_row:
                 row_counts[0] += 1
                 row_counts[1] += 1
-            row_counts[2] -= 1
+                    row_counts[2] -= 1
         elif remainder == 2:
             # 余2时给前两行各加1
             if row_counts[0] < max_per_row and row_counts[1] < max_per_row:
                 row_counts[0] += 1
-                row_counts[1] += 1
+                    row_counts[1] += 1
         
         return row_counts
 
