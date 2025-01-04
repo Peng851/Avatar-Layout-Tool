@@ -1256,44 +1256,44 @@ class ImageArranger:
                     fits, new_line = add_word_to_line(current_word, current_line)
                     if fits:
                         current_line = new_line
-            else:
+                else:
                     if current_line:
                         lines.append(current_line)
                     current_line = current_word
                     current_word = ""
-            
-            # 处理中文字符
-            fits, new_line = add_word_to_line(char, current_line)
-            if fits:
-                current_line = new_line
+                
+                # 处理中文字符
+                fits, new_line = add_word_to_line(char, current_line)
+                if fits:
+                    current_line = new_line
+                else:
+                    if current_line:
+                        lines.append(current_line)
+                    current_line = char
             else:
-                if current_line:
-                lines.append(current_line)
-                current_line = char
-        else:
-            if char.isspace():
-                # 处理空格，将当前单词添加到行
-                if current_word:
-                    fits, new_line = add_word_to_line(current_word, current_line)
-                    if fits:
-                        current_line = new_line
-                    else:
-                        if current_line:
-                            lines.append(current_line)
-                        current_line = current_word
-                current_word = ""
-            else:
-                # 累积英文字符
-                current_word += char
-    
+                if char.isspace():
+                    # 处理空格，将当前单词添加到行
+                    if current_word:
+                        fits, new_line = add_word_to_line(current_word, current_line)
+                        if fits:
+                            current_line = new_line
+                        else:
+                            if current_line:
+                                lines.append(current_line)
+                            current_line = current_word
+                    current_word = ""
+                else:
+                    # 累积英文字符
+                    current_word += char
+        
         # 处理最后剩余的单词
         if current_word:
             fits, new_line = add_word_to_line(current_word, current_line)
             if fits:
                 current_line = new_line
             else:
-        if current_line:
-            lines.append(current_line)
+                if current_line:
+                    lines.append(current_line)
                 current_line = current_word
         
         # 添加最后一行
@@ -1316,12 +1316,12 @@ class ImageArranger:
             if row_counts[0] < max_per_row:
                 row_counts[0] += 1
                 row_counts[1] += 1
-                    row_counts[2] -= 1
+                row_counts[2] -= 1
         elif remainder == 2:
             # 余2时给前两行各加1
             if row_counts[0] < max_per_row and row_counts[1] < max_per_row:
                 row_counts[0] += 1
-                    row_counts[1] += 1
+                row_counts[1] += 1
         
         return row_counts
 
