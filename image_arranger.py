@@ -1260,7 +1260,7 @@ class ImageArranger:
                     if current_line:
                         lines.append(current_line)
                     current_line = current_word
-                current_word = ""
+                    current_word = ""
             
             # 处理中文字符
             fits, new_line = add_word_to_line(char, current_line)
