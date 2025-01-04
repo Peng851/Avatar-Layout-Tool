@@ -43,6 +43,16 @@ class ImageArranger:
         # 初始化预览窗口
         self.preview_window = None
     
+    def process_font_record(self, record, encoding):
+        """处理字体记录"""
+        try:
+            name = record.string.decode(encoding)
+            if all(ord(c) < 0x10000 for c in name):
+                return name
+        except Exception:
+            return None
+        return None
+    
     def init_fonts(self):
         """初始化字体列表和路径"""
         import sqlite3
@@ -110,20 +120,13 @@ class ImageArranger:
                                         name_table = font['name']
                                         for record in name_table.names:
                                             if record.nameID in (1, 4, 6):
-                                                try:
-                                                    for encoding in ('utf-16-be', 'utf-8', 'ascii'):
-                                                        try:
-                                                            name = record.string.decode(encoding)
-                                                            if all(ord(c) < 0x10000 for c in name):
-                                                                cursor.execute(
-                                                                    "INSERT OR REPLACE INTO fonts VALUES (?, ?, ?, ?)",
-                                                                    (name, full_path, i, mtime)
-                                                                )
-                                                                break
-                                                        except:
-                                                            continue
-                                                except:
-                                                    continue
+                                                for encoding in ('utf-16-be', 'utf-8', 'ascii'):
+                                                    if name := self.process_font_record(record, encoding):
+                                                        cursor.execute(
+                                                            "INSERT OR REPLACE INTO fonts VALUES (?, ?, ?, ?)",
+                                                            (name, full_path, i, mtime)
+                                                        )
+                                                        break
                                 else:
                                     # 处理单字体文件
                                     font = TTFont(full_path)
@@ -468,13 +471,18 @@ class ImageArranger:
             self.border_color = color[1]
     
     def select_background(self):
-        path = filedialog.askopenfilename(
+        """选择背景图片"""
+        file_path = filedialog.askopenfilename(
             title="选择背景图片",
-            filetypes=[("Image files", "*.jpg *.png")]
+            filetypes=[("图片文件", "*.jpg;*.jpeg;*.png")]
         )
-        if path:
-            self.background_path = path
-            self.bg_path_var.set(path)
+        
+        if file_path:
+            self.background_path = file_path
+            self.bg_path_var.set(file_path)
+            # 导入该背景图片的布局设置
+            self.import_settings(file_path)
+            logging.info(f"已选择背景图片: {file_path}")
     
     def select_avatars_folder(self):
         path = filedialog.askdirectory(title="选择头像文件夹")
@@ -483,13 +491,17 @@ class ImageArranger:
             self.avatar_path_var.set(path)
     
     def generate_layout(self):
-        """生成排版"""
+        """生成布局"""
         if not self.background_path or not self.avatars_folder:
             messagebox.showerror("错误", "请先选择背景图片和头像文件夹")
             return
         
         try:
             logging.info("开始生成排版...")
+            
+            # 在生成开始时就导出设置
+            self.export_settings(self.background_path)
+            logging.info("已导出布局设置")
             
             # 2. 获取所有标题文件夹
             class_folders = [f for f in os.listdir(self.avatars_folder) 
@@ -545,13 +557,12 @@ class ImageArranger:
             self.status_var.set("处理完成！")
             logging.info("排版生成完成！")
             
-            # 5. 显示完成消息并打开输出文件夹
-            messagebox.showinfo("完成", f"排版已完成！\n输出文件夹：{output_folder}")
-            os.startfile(output_folder)
-            
+            # 打开输出目录
+            os.startfile(parent_dir)
+            messagebox.showinfo("完成", "排版已完成！")
         except Exception as e:
-            logging.error(f"生成排版时出错: {e}")
-            messagebox.showerror("错误", f"生成排版时出错：\n{str(e)}")
+            logging.error(f"生成布局时出错: {e}")
+            messagebox.showerror("错误", f"生成布局时出错: {e}")
 
     def process_class(self, background, class_path, class_name):
         """处理单个标题的排版"""
@@ -809,6 +820,7 @@ class ImageArranger:
             raise
 
     def get_font_path(self, font_name):
+        # sourcery skip: inline-immediately-returned-variable
         """获取字体文件路径"""
         # 直接从缓存中获取字体路径和索引
         if font_name in self.font_paths:
@@ -948,7 +960,7 @@ class ImageArranger:
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"保存配置失败: {e}")
+            logging.error(f"保存配置失败: {e}")
     
     def load_config(self):
         try:
@@ -1257,19 +1269,14 @@ class ImageArranger:
                     if fits:
                         current_line = new_line
                 else:
-                    if current_line:
-                        lines.append(current_line)
-                    current_line = current_word
-                    current_word = ""
-                
-                # 处理中文字符
-                fits, new_line = add_word_to_line(char, current_line)
-                if fits:
-                    current_line = new_line
-                else:
-                    if current_line:
-                        lines.append(current_line)
-                    current_line = char
+                    # 处理中文字符
+                    fits, new_line = add_word_to_line(char, current_line)
+                    if fits:
+                        current_line = new_line
+                    else:
+                        if current_line:
+                            lines.append(current_line)
+                        current_line = char
             else:
                 if char.isspace():
                     # 处理空格，将当前单词添加到行
@@ -1626,25 +1633,18 @@ class ImageArranger:
         # 获取布局设置中的边距
         layout_type = self.layout_type_var.get()
         layout_margin = int(self.side_margin_var.get())  # 使用布局设置中的边距值
+        top_margin = int(self.top_margin_var.get()) * scale  # 使用设置的上边距
+        bottom_margin_red = int(self.bottom_margin_var.get()) * scale  # 使用设置的下边距
         
         # 根据布局类型设置左右边距
         if layout_type == "左对齐布局":
-            # 左对齐时，左边距固定为布局边距，右边距为图片宽度减去布局边距
-            left_margin = layout_margin * scale
-            right_margin = preview_width - (layout_margin * scale)
-        elif layout_type == "右对齐布局":
-            # 右对齐时，右边距固定为布局边距，左边距为图片宽度减去布局边距
             left_margin = layout_margin * scale
             right_margin = preview_width - (layout_margin * scale)
         else:  # 居中布局
-            # 居中布局时，左右边距相等
             left_margin = layout_margin * scale
             right_margin = preview_width - (layout_margin * scale)
         
-        # 添加头像区域参考线（红色）和标题区域参考线（蓝色）都使用相同的边距
-        top_margin = 250 * scale
-        bottom_margin_red = 600 * scale
-        
+        # 添加头像区域参考线（红色）
         # 上边界水平线
         canvas.create_line(
             left_margin, top_margin, 
@@ -1715,6 +1715,93 @@ class ImageArranger:
         except Exception as e:
             logging.error(f"从预览生成时出错: {e}")
             messagebox.showerror("错误", f"生成时出错: {e}")
+
+    def export_settings(self, background_path):
+        """导出当前设置到背景图片所在目录"""
+        settings = {
+            # 布局设置
+            'layout': {
+                'ratio': self.ratio_var.get(),
+                'layout_type': self.layout_type_var.get(),
+                'avoid_area': self.avoid_area_var.get(),
+                'avoid_count': self.avoid_count_var.get(),
+                'top_margin': self.top_margin_var.get(),
+                'bottom_margin': self.bottom_margin_var.get(),
+                'side_margin': self.side_margin_var.get()
+            },
+            # 头像设置
+            'avatar': {
+                'name_font': self.name_font_var.get(),
+                'name_size': self.name_size_var.get(),
+                'border_enabled': self.border_enabled.get(),
+                'border_color': self.border_color,
+                'border_width': self.border_width_var.get()
+            },
+            # 标题设置
+            'title': {
+                'font': self.class_font_var.get(),
+                'size': self.class_size_var.get(),
+                'color': self.title_color,
+                'align': self.title_align_var.get(),
+                'bottom_margin': self.title_bottom_margin_var.get(),
+                'side_margin': self.title_side_margin_var.get()
+            }
+        }
+        
+        # 生成配置文件路径（与背景图片同名，但后缀为 .layout）
+        config_path = os.path.splitext(background_path)[0] + '.layout'
+        
+        try:
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, ensure_ascii=False, indent=4)
+            logging.info(f"布局设置已保存到: {config_path}")
+        except Exception as e:
+            logging.error(f"保存布局设置时出错: {e}")
+            messagebox.showerror("错误", f"保存布局设置时出错: {e}")
+
+    def import_settings(self, background_path):
+        """从背景图片所在目录导入设置"""
+        config_path = os.path.splitext(background_path)[0] + '.layout'
+        
+        if not os.path.exists(config_path):
+            logging.info("未找到布局配置文件，使用默认设置")
+            return
+        
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                settings = json.load(f)
+            
+            # 应用布局设置
+            layout = settings.get('layout', {})
+            self.ratio_var.set(layout.get('ratio', '4:5'))
+            self.layout_type_var.set(layout.get('layout_type', '左对齐布局'))
+            self.avoid_area_var.set(layout.get('avoid_area', '无'))
+            self.avoid_count_var.set(layout.get('avoid_count', '2'))
+            self.top_margin_var.set(layout.get('top_margin', '270'))
+            self.bottom_margin_var.set(layout.get('bottom_margin', '650'))
+            self.side_margin_var.set(layout.get('side_margin', '130'))
+            
+            # 应用头像设置
+            avatar = settings.get('avatar', {})
+            self.name_font_var.set(avatar.get('name_font', '微软雅黑'))
+            self.name_size_var.set(avatar.get('name_size', '40'))
+            self.border_enabled.set(avatar.get('border_enabled', True))
+            self.border_color = avatar.get('border_color', '#000000')
+            self.border_width_var.set(avatar.get('border_width', '2'))
+            
+            # 应用标题设置
+            title = settings.get('title', {})
+            self.class_font_var.set(title.get('font', '微软雅黑'))
+            self.class_size_var.set(title.get('size', '120'))
+            self.title_color = title.get('color', '#000000')
+            self.title_align_var.set(title.get('align', '居中'))
+            self.title_bottom_margin_var.set(title.get('bottom_margin', '200'))
+            self.title_side_margin_var.set(title.get('side_margin', '0'))
+            
+            logging.info(f"已从 {config_path} 导入布局设置")
+        except Exception as e:
+            logging.error(f"导入布局设置时出错: {e}")
+            messagebox.showerror("错误", f"导入布局设置时出错: {e}")
 
 if __name__ == "__main__":
     try:
