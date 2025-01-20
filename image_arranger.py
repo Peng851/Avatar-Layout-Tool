@@ -194,15 +194,18 @@ class ImageArranger:
         
         # 边框设置
         self.border_enabled = tk.BooleanVar(value=True)
-        self.border_color = '#000000'
         self.border_width_var = tk.StringVar(value="2")
         
         # 标题设置
-        self.title_color = '#000000'
         self.title_align_var = tk.StringVar(value="居中")
         self.title_bottom_margin_var = tk.StringVar(value="200")
         self.title_side_margin_var = tk.StringVar(value="0")
         
+        # 颜色设置
+        self.title_color = '#000000' #标题颜色
+        self.border_color = '#000000' #边框颜色
+        self.name_color = '#000000'  # 姓名颜色
+
         # 避让设置
         self.avoid_area_var = tk.StringVar(value="无")
         self.avoid_count_var = tk.StringVar(value="2")  # 新增避让数量变量
@@ -411,6 +414,13 @@ class ImageArranger:
                   borderwidth=1,
                   command=self.choose_border_color).pack(side='left', padx=(0, 20))
         
+        tk.Button(border_frame,                             # 新增字体颜色按钮
+                  text="字体颜色",
+                  bg='white',
+                  relief='solid',
+                  borderwidth=1,
+                  command=self.choose_name_color).pack(side='left', padx=(0, 20))
+        
         tk.Label(border_frame, text="边框宽度:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
         tk.Entry(border_frame, textvariable=self.border_width_var, width=8).pack(side='left')
     
@@ -469,6 +479,12 @@ class ImageArranger:
         color = colorchooser.askcolor(title="选择边框颜色")
         if color[1]:
             self.border_color = color[1]
+    
+    def choose_name_color(self):
+        """选择姓名文字颜色"""
+        color = colorchooser.askcolor(title="选择姓名文字颜色")
+        if color[1]:
+            self.name_color = color[1]
     
     def select_background(self):
         """选择背景图片"""
@@ -784,7 +800,7 @@ class ImageArranger:
                             # 计算y坐标
                             text_y = text_start_y + i * (name_font_size + 5)  # 5是行间距
                             # 绘制文字
-                            draw.text((text_x, text_y), line, font=name_font, fill='black')
+                            draw.text((text_x, text_y), line, font=name_font, fill=self.name_color)
                         
                         current_index += 1
                         
@@ -954,7 +970,8 @@ class ImageArranger:
             'title_bottom_margin': self.title_bottom_margin_var.get(),
             'title_side_margin': self.title_side_margin_var.get(),
             'avoid_area': self.avoid_area_var.get(),
-            'avoid_count': self.avoid_count_var.get()
+            'avoid_count': self.avoid_count_var.get(),
+            'name_color': self.name_color  # 新增姓名颜色
         }
         try:
             with open(self.config_file, 'w', encoding='utf-8') as f:
@@ -1095,6 +1112,8 @@ class ImageArranger:
                 self.avoid_area_var.set(config['avoid_area'])
             if 'avoid_count' in config:
                 self.avoid_count_var.set(config['avoid_count'])
+            if 'name_color' in config:
+                self.name_color = config['name_color']
         except Exception as e:
             logging.error(f"应用配置时出错: {e}")
 
@@ -1733,6 +1752,7 @@ class ImageArranger:
             'avatar': {
                 'name_font': self.name_font_var.get(),
                 'name_size': self.name_size_var.get(),
+                'name_color': self.name_color,
                 'border_enabled': self.border_enabled.get(),
                 'border_color': self.border_color,
                 'border_width': self.border_width_var.get()
@@ -1785,6 +1805,7 @@ class ImageArranger:
             avatar = settings.get('avatar', {})
             self.name_font_var.set(avatar.get('name_font', '微软雅黑'))
             self.name_size_var.set(avatar.get('name_size', '40'))
+            self.name_color = avatar.get('name_color', '#000000')
             self.border_enabled.set(avatar.get('border_enabled', True))
             self.border_color = avatar.get('border_color', '#000000')
             self.border_width_var.set(avatar.get('border_width', '2'))
@@ -1802,6 +1823,12 @@ class ImageArranger:
         except Exception as e:
             logging.error(f"导入布局设置时出错: {e}")
             messagebox.showerror("错误", f"导入布局设置时出错: {e}")
+
+    def choose_name_color(self):
+        """选择姓名文字颜色"""
+        color = colorchooser.askcolor(title="选择姓名文字颜色")
+        if color[1]:
+            self.name_color = color[1]
 
 if __name__ == "__main__":
     try:
