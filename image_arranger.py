@@ -16,7 +16,58 @@ class ImageArranger:
         self.window = tk.Tk()
         self.window.title("头像排版工具")
         self.window.geometry("1000x800")
-        self.window.configure(bg='#f0f0f0')
+        
+        # Flat Remix 风格的颜色方案
+        self.COLORS = {
+            'primary': '#367bf0',         # 主色调（按钮）
+            'primary_light': '#5294ff',   # 主色调悬浮
+            'bg_main': '#ffffff',         # 主背景
+            'bg_light': '#f5f6f7',        # 次要背景
+            'bg_dark': '#e1e3e6',         # 深色背景
+            'text_primary': '#2e3436',    # 主要文字
+            'text_secondary': '#6f7981',  # 次要文字
+            'border': '#dde1e5',          # 边框颜色
+            'success': '#2ecc71',         # 成功色
+            'warning': '#f1c40f',         # 警告色
+            'error': '#e74c3c'           # 错误色
+        }
+        
+        # 统一的控件样式
+        self.STYLES = {
+            'button': {
+                'bg': self.COLORS['primary'],
+                'fg': 'white',
+                'font': ('微软雅黑', 10),
+                'relief': 'flat',
+                'padx': 15,
+                'pady': 8,
+                'cursor': 'hand2'  # 鼠标悬浮时显示手型
+            },
+            'button_secondary': {
+                'bg': self.COLORS['bg_light'],
+                'fg': self.COLORS['text_primary'],
+                'font': ('微软雅黑', 10),
+                'relief': 'flat',
+                'padx': 15,
+                'pady': 8,
+                'cursor': 'hand2'
+            },
+            'label': {
+                'bg': self.COLORS['bg_main'],
+                'fg': self.COLORS['text_primary'],
+                'font': ('微软雅黑', 10)
+            },
+            'entry': {
+                'relief': 'flat',
+                'bd': 1,
+                'highlightthickness': 1,
+                'highlightcolor': self.COLORS['primary'],
+                'highlightbackground': self.COLORS['border']
+            }
+        }
+        
+        # 配置主窗口样式
+        self.window.configure(bg=self.COLORS['bg_main'])
         
         # 获取系统字体列表并处理
         self.available_fonts = []
@@ -222,27 +273,53 @@ class ImageArranger:
         self.batch_mode = tk.BooleanVar(value=False)
     
     def create_ui(self):
-        # 创建主窗口的左右分栏
-        main_container = tk.PanedWindow(self.window, orient=tk.HORIZONTAL, bg='#f0f0f0')
-        main_container.pack(fill='both', expand=True, padx=20, pady=20)
+        # 创建主容器，使用内边距
+        main_container = tk.PanedWindow(
+            self.window,
+            orient=tk.HORIZONTAL,
+            bg=self.COLORS['bg_main'],
+            sashwidth=4,
+            sashpad=2
+        )
+        main_container.pack(fill='both', expand=True, padx=15, pady=15)
         
-        # 左侧控制面板
-        left_frame = tk.Frame(main_container, bg='#f0f0f0')
+        # 左侧控制面板（带圆角和阴影效果的框架）
+        left_frame = tk.Frame(
+            main_container,
+            bg=self.COLORS['bg_main'],
+            highlightthickness=1,
+            highlightbackground=self.COLORS['border']
+        )
         main_container.add(left_frame)
         
         # 右侧日志窗口
-        log_frame = ttk.LabelFrame(main_container, text="运行日志")
+        log_frame = tk.Frame(
+            main_container,
+            bg=self.COLORS['bg_main'],
+            highlightthickness=1,
+            highlightbackground=self.COLORS['border']
+        )
         main_container.add(log_frame)
         
         # 创建日志文本框
-        self.log_text = tk.Text(log_frame, wrap=tk.WORD, width=50, height=30)
+        self.log_text = tk.Text(
+            log_frame,
+            wrap=tk.WORD,
+            width=50,
+            height=30,
+            bg=self.COLORS['bg_light'],
+            fg=self.COLORS['text_primary'],
+            font=('微软雅黑', 9),
+            relief='flat',
+            padx=10,
+            pady=10
+        )
         self.log_text.pack(fill='both', expand=True, padx=5, pady=5)
         
-        # 添加滚动条
-        scrollbar = tk.Scrollbar(log_frame)
+        # 添加现代风格的滚动条
+        scrollbar = ttk.Scrollbar(log_frame, orient='vertical', command=self.log_text.yview)
         scrollbar.pack(side='right', fill='y')
-        self.log_text.config(yscrollcommand=scrollbar.set)
-        scrollbar.config(command=self.log_text.yview)
+        self.log_text.configure(yscrollcommand=scrollbar.set)
         
         # 在左侧创建UI元素
         self.create_file_selection(left_frame)
@@ -295,32 +372,82 @@ class ImageArranger:
         progress_bar.pack(fill='x', pady=5)
     
     def create_file_selection(self, parent):
-        file_frame = ttk.LabelFrame(parent, text="文件选择", padding=10)
-        file_frame.pack(fill='x', pady=(0, 10))
+        file_frame = tk.LabelFrame(
+            parent,
+            text="文件选择",
+            bg=self.COLORS['bg_main'],
+            fg=self.COLORS['text_primary'],
+            font=('微软雅黑', 10, 'bold'),
+            relief='flat',
+            bd=1,
+            highlightthickness=1,
+            highlightbackground=self.COLORS['border']
+        )
+        file_frame.pack(fill='x', padx=10, pady=(0, 10))
         
         # 背景图片选择
-        bg_frame = tk.Frame(file_frame, bg='#f0f0f0')
-        bg_frame.pack(fill='x', pady=5)
-        tk.Button(bg_frame, 
-                 text="选择背景图片",
-                 bg='white',
-                 relief='solid',
-                 borderwidth=1,
-                 command=self.select_background).pack(side='left', padx=(0, 10))
-        self.bg_path_var = tk.StringVar()
-        tk.Entry(bg_frame, textvariable=self.bg_path_var, width=50).pack(side='left', fill='x', expand=True)
+        bg_frame = tk.Frame(file_frame, bg=self.COLORS['bg_main'])
+        bg_frame.pack(fill='x', padx=10, pady=5)
+        
+        select_bg_btn = tk.Button(
+            bg_frame,
+            text="选择背景图片",
+            command=self.select_background,
+            width=11,  # 设置按钮宽度，单位是字符
+            height=1,  # 设置按钮高度，单位是字符行数
+            **self.STYLES['button']
+        )
+        select_bg_btn.pack(side='left', padx=(0, 10))
+        
+        # 添加鼠标悬浮效果
+        def on_enter(e):
+            select_bg_btn['bg'] = self.COLORS['primary_light']
+        def on_leave(e):
+            select_bg_btn['bg'] = self.COLORS['primary']
+        
+        select_bg_btn.bind('<Enter>', on_enter)
+        select_bg_btn.bind('<Leave>', on_leave)
+        
+        # 优化输入框样式
+        bg_entry = tk.Entry(
+            bg_frame,
+            textvariable=self.bg_path_var,
+            **self.STYLES['entry']
+        )
+        bg_entry.pack(side='left', fill='x', expand=True)
         
         # 头像文件夹选择
-        avatar_frame = tk.Frame(file_frame, bg='#f0f0f0')
-        avatar_frame.pack(fill='x', pady=5)
-        tk.Button(avatar_frame,
-                 text="选择头像文件夹",
-                 bg='white',
-                 relief='solid',
-                 borderwidth=1,
-                 command=self.select_avatars_folder).pack(side='left', padx=(0, 10))
-        self.avatar_path_var = tk.StringVar()
-        tk.Entry(avatar_frame, textvariable=self.avatar_path_var, width=50).pack(side='left', fill='x', expand=True)
+        avatar_frame = tk.Frame(file_frame, bg=self.COLORS['bg_main'])  # 改为使用与背景图片框相同的背景颜色
+        avatar_frame.pack(fill='x', padx=10, pady=5)  # 添加左右内边距和垂直内边距
+        
+        # 选择头像文件夹按钮
+        select_avatar_btn = tk.Button(
+            avatar_frame,
+            text="选择头像文件夹",
+            command=self.select_avatars_folder,
+            width=11,  # 设置按钮宽度，单位是字符
+            height=1,  # 设置按钮高度，单位是字符行数
+            **self.STYLES['button']  # 使用与背景图片按钮相同的样式
+        )
+        select_avatar_btn.pack(side='left', padx=(0, 10))
+        
+        # 添加鼠标悬浮效果
+        def on_enter_avatar(e):
+            select_avatar_btn['bg'] = self.COLORS['primary_light']  # 改变背景色为浅色
+        def on_leave_avatar(e):
+            select_avatar_btn['bg'] = self.COLORS['primary']  # 恢复原始颜色
+        
+        select_avatar_btn.bind('<Enter>', on_enter_avatar)
+        select_avatar_btn.bind('<Leave>', on_leave_avatar)
+        
+        # 输入框样式优化
+        avatar_entry = tk.Entry(
+            avatar_frame,
+            textvariable=self.avatar_path_var,
+            **self.STYLES['entry']  # 使用与背景图片输入框相同的样式
+        )
+        avatar_entry.pack(side='left', fill='x', expand=True)  # 填充横向并允许扩展
+    
     
     def create_layout_settings(self, parent):
         """创建布局设置区域"""
@@ -1375,11 +1502,11 @@ class ImageArranger:
 
     def create_font_combobox(self, parent, var, width=20):
         """创建可搜索的字体下拉框"""
-        frame = tk.Frame(parent, bg='#f0f0f0')
+        frame = tk.Frame(parent, bg=self.COLORS['bg_light'])
         
         # 创建输入框
-        entry = tk.Entry(frame, width=width, textvariable=var)
-        entry.pack(side='left')
+        entry = tk.Entry(frame, width=width, textvariable=var, **self.STYLES['entry'])
+        entry.pack(side='left', fill='x', expand=True)
         
         # 创建下拉列表窗口
         listbox_window = tk.Toplevel(frame)
@@ -1388,8 +1515,8 @@ class ImageArranger:
         listbox_window.transient(self.window)
         
         # 创建列表框和滚动条
-        listbox = tk.Listbox(listbox_window, width=width, height=10)
-        scrollbar = tk.Scrollbar(listbox_window, orient="vertical", command=listbox.yview)
+        listbox = tk.Listbox(listbox_window, width=width, height=10, **self.STYLES['entry'])
+        scrollbar = ttk.Scrollbar(listbox_window, orient="vertical", command=listbox.yview)
         listbox.configure(yscrollcommand=scrollbar.set)
         
         scrollbar.pack(side="right", fill="y")
@@ -1829,6 +1956,29 @@ class ImageArranger:
         color = colorchooser.askcolor(title="选择姓名文字颜色")
         if color[1]:
             self.name_color = color[1]
+
+    def add_hover_effect(self, widget, hover_color, normal_color):
+        """添加鼠标悬浮效果"""
+        def on_enter(e):
+            widget['bg'] = hover_color
+        def on_leave(e):
+            widget['bg'] = normal_color
+        
+        widget.bind('<Enter>', on_enter)
+        widget.bind('<Leave>', on_leave)
+
+    def create_modern_button(self, parent, text, command, is_primary=True):
+        """创建现代风格按钮"""
+        style = self.STYLES['button'] if is_primary else self.STYLES['button_secondary']
+        btn = tk.Button(parent, text=text, command=command, **style)
+        
+        # 添加悬浮效果
+        if is_primary:
+            self.add_hover_effect(btn, self.COLORS['primary_light'], self.COLORS['primary'])
+        else:
+            self.add_hover_effect(btn, self.COLORS['bg_dark'], self.COLORS['bg_light'])
+        
+        return btn
 
 if __name__ == "__main__":
     try:
