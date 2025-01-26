@@ -13,24 +13,151 @@ from datetime import datetime
 
 class ImageArranger:
     def __init__(self):
-        self.window = tk.Tk()
-        self.window.title("头像排版工具")
-        self.window.geometry("1000x800")
-        
         # Flat Remix 风格的颜色方案
         self.COLORS = {
-            'primary': '#367bf0',         # 主色调（按钮）
-            'primary_light': '#5294ff',   # 主色调悬浮
-            'bg_main': '#ffffff',         # 主背景
-            'bg_light': '#f5f6f7',        # 次要背景
+            'primary': '#cadef0',         # 主色调（按钮）
+            'primary_light': '#eef4fb',   # 主色调悬浮
+            'bg_main': '#ffffff',         # 底层背景
+            'bg_light': '#f5f6f7',        # 窗口背景
             'bg_dark': '#e1e3e6',         # 深色背景
-            'text_primary': '#2e3436',    # 主要文字
+            'text_primary': '#1e1e1e',    # 主要文字
             'text_secondary': '#6f7981',  # 次要文字
             'border': '#dde1e5',          # 边框颜色
             'success': '#2ecc71',         # 成功色
             'warning': '#f1c40f',         # 警告色
             'error': '#e74c3c'           # 错误色
         }
+        
+        self.window = tk.Tk()
+        self.window.title("头像排版工具")
+        self.window.geometry("1000x800")
+        
+        # 添加以下代码来自定义标题栏颜色
+        self.window.configure(bg=self.COLORS['primary'])  # 使用主题色
+        self.window.overrideredirect(True)  # 移除默认标题栏
+        
+        # 创建自定义标题栏
+        title_bar = tk.Frame(
+            self.window,
+            bg=self.COLORS['primary'],  # 标题栏背景色
+            relief='flat',
+            bd=0,
+            height=30
+        )
+        title_bar.pack(fill='x')
+        
+        # 添加标题文本
+        title_label = tk.Label(
+            title_bar,
+            text="头像排版工具",
+            bg=self.COLORS['primary'],
+            fg=self.COLORS['text_primary'],  # 使用主要文字颜色
+            font=('微软雅黑', 10)
+        )
+        title_label.pack(side='left', padx=10)
+        
+        # 添加切换最大化的方法
+        def toggle_maximize():
+            if self.window.state() == 'zoomed':
+                self.window.state('normal')
+                btn_maximize.configure(text='□')
+            else:
+                self.window.state('zoomed')
+                btn_maximize.configure(text='❐')
+        
+        self.toggle_maximize = toggle_maximize
+        
+        # 创建按钮容器来确保水平对齐
+        buttons_frame = tk.Frame(
+            title_bar,
+            bg=self.COLORS['primary'],
+            height=30
+        )
+        buttons_frame.pack(side='right', fill='y')
+        
+        # 关闭按钮
+        btn_close = tk.Button(
+            buttons_frame,
+            text='×',
+            command=self.window.destroy,
+            bg=self.COLORS['primary'],
+            fg=self.COLORS['text_primary'],
+            bd=0,
+            font=('微软雅黑', 12),
+            width=3,
+            cursor='hand2'
+        )
+        btn_close.pack(side='right', pady=1)
+        
+        # 为关闭按钮添加悬浮效果（使用错误色）
+        def on_close_enter(e):
+            btn_close.configure(bg=self.COLORS['error'])
+        def on_close_leave(e):
+            btn_close.configure(bg=self.COLORS['primary'])
+        btn_close.bind('<Enter>', on_close_enter)
+        btn_close.bind('<Leave>', on_close_leave)
+
+        # 最大化按钮
+        btn_maximize = tk.Button(
+            buttons_frame,
+            text='▢',
+            command=self.toggle_maximize,
+            bg=self.COLORS['primary'],
+            fg=self.COLORS['text_primary'],
+            bd=0,
+            font=('微软雅黑', 12),
+            width=3,
+            cursor='hand2',
+            anchor='n'  # 添加这个属性使文本向上对齐
+        )
+        btn_maximize.pack(side='right', pady=(4, 2))  # 上边距2像素，下边距0像素
+        
+        # 为最大化按钮添加悬浮效果
+        def on_maximize_enter(e):
+            btn_maximize.configure(bg=self.COLORS['primary_light'])
+        def on_maximize_leave(e):
+            btn_maximize.configure(bg=self.COLORS['primary'])
+        btn_maximize.bind('<Enter>', on_maximize_enter)
+        btn_maximize.bind('<Leave>', on_maximize_leave)
+
+        # 最小化按钮
+        btn_minimize = tk.Button(
+            buttons_frame,
+            text='─',
+            command=self.window.iconify,
+            bg=self.COLORS['primary'],
+            fg=self.COLORS['text_primary'],
+            bd=0,
+            font=('微软雅黑', 12),
+            width=3,
+            cursor='hand2'
+        )
+        btn_minimize.pack(side='right', pady=1)
+        
+        # 为最小化按钮添加悬浮效果
+        def on_minimize_enter(e):
+            btn_minimize.configure(bg=self.COLORS['primary_light'])
+        def on_minimize_leave(e):
+            btn_minimize.configure(bg=self.COLORS['primary'])
+        btn_minimize.bind('<Enter>', on_minimize_enter)
+        btn_minimize.bind('<Leave>', on_minimize_leave)
+
+        # 添加拖动功能
+        def get_pos(event):
+            xwin = self.window.winfo_x()
+            ywin = self.window.winfo_y()
+            startx = event.x_root
+            starty = event.y_root
+            
+            ywin = ywin - starty
+            xwin = xwin - startx
+            
+            def move_window(event):
+                self.window.geometry(f'+{event.x_root + xwin}+{event.y_root + ywin}')
+            
+            title_bar.bind('<B1-Motion>', move_window)
+        
+        title_bar.bind('<Button-1>', get_pos)
         
         # 统一的控件样式
         self.STYLES = {
@@ -328,7 +455,7 @@ class ImageArranger:
         self.create_title_settings(left_frame)   # 新增：标题设置
         
         # 添加按钮区域
-        button_frame = tk.Frame(left_frame, bg='#f0f0f0')
+        button_frame = tk.Frame(left_frame, bg=self.COLORS['bg_light'])
         button_frame.pack(pady=20)
         
         # 预览按钮
@@ -354,14 +481,14 @@ class ImageArranger:
         generate_btn.pack(side='left', padx=20)
         
         # 添加状态栏
-        status_frame = tk.Frame(left_frame, bg='#f0f0f0')
+        status_frame = tk.Frame(left_frame, bg=self.COLORS['bg_light'])
         status_frame.pack(fill='x', pady=10)
         
         # 状态文本
         self.status_var = tk.StringVar()
         status_label = tk.Label(status_frame, 
                                textvariable=self.status_var,
-                               bg='#f0f0f0')
+                               bg=self.COLORS['bg_light'])
         status_label.pack()
         
         # 进度条
@@ -372,43 +499,60 @@ class ImageArranger:
         progress_bar.pack(fill='x', pady=5)
     
     def create_file_selection(self, parent):
-        file_frame = tk.LabelFrame(
-            parent,
-            text="文件选择",
-            bg=self.COLORS['bg_main'],
-            fg=self.COLORS['text_primary'],
-            font=('微软雅黑', 10, 'bold'),
-            relief='flat',
-            bd=1,
-            highlightthickness=1,
-            highlightbackground=self.COLORS['border']
+        """创建文件选择区域"""
+        style = ttk.Style()
+        
+        # 完全重写 LabelFrame 的布局，只保留标题
+        style.layout('Custom.TLabelframe', [
+            ('Custom.TLabelframe.Label', {'sticky': 'nw'})  # 只保留标题，放在左上角
+        ])
+        
+        # 配置标题和边框样式
+        style.configure(
+            'Custom.TLabelframe',
+            background=self.COLORS['bg_main'],
+            borderwidth=0                      # 移除边框
         )
-        file_frame.pack(fill='x', padx=10, pady=(0, 10))
+        
+        style.configure(
+            'Custom.TLabelframe.Label',
+            background=self.COLORS['bg_main'],
+            #foreground=self.COLORS['text_primary'],未来启动
+            foreground='red', 
+            font=('微软雅黑', 10)
+        )
+        
+        # 创建文件选择区域
+        file_frame = ttk.LabelFrame(
+            parent, 
+            text="文件选择",
+            padding=(10, 5, 10, 10),
+            style='Custom.TLabelframe'
+        )
+        file_frame.pack(fill='x', pady=(0, 10))
         
         # 背景图片选择
         bg_frame = tk.Frame(file_frame, bg=self.COLORS['bg_main'])
-        bg_frame.pack(fill='x', padx=10, pady=5)
+        bg_frame.pack(fill='x', pady=5)
         
-        select_bg_btn = tk.Button(
+        # 选择背景图片按钮
+        select_bg_btn = RoundedButton(
             bg_frame,
             text="选择背景图片",
             command=self.select_background,
-            width=11,  # 设置按钮宽度，单位是字符
-            height=1,  # 设置按钮高度，单位是字符行数
-            **self.STYLES['button']
+            width=120,
+            height=30,
+            corner_radius=8,
+            colors={
+                'normal': self.COLORS['primary'],
+                'hover': self.COLORS['primary_light'],
+                'pressed': self.COLORS['primary_light'],
+                'text': self.COLORS['text_primary']
+            }
         )
         select_bg_btn.pack(side='left', padx=(0, 10))
         
-        # 添加鼠标悬浮效果
-        def on_enter(e):
-            select_bg_btn['bg'] = self.COLORS['primary_light']
-        def on_leave(e):
-            select_bg_btn['bg'] = self.COLORS['primary']
-        
-        select_bg_btn.bind('<Enter>', on_enter)
-        select_bg_btn.bind('<Leave>', on_leave)
-        
-        # 优化输入框样式
+        # 背景图片路径输入框
         bg_entry = tk.Entry(
             bg_frame,
             textvariable=self.bg_path_var,
@@ -417,73 +561,96 @@ class ImageArranger:
         bg_entry.pack(side='left', fill='x', expand=True)
         
         # 头像文件夹选择
-        avatar_frame = tk.Frame(file_frame, bg=self.COLORS['bg_main'])  # 改为使用与背景图片框相同的背景颜色
-        avatar_frame.pack(fill='x', padx=10, pady=5)  # 添加左右内边距和垂直内边距
+        folder_frame = tk.Frame(file_frame, bg=self.COLORS['bg_main'])
+        folder_frame.pack(fill='x', pady=5)
         
         # 选择头像文件夹按钮
-        select_avatar_btn = tk.Button(
-            avatar_frame,
+        select_avatar_btn = RoundedButton(
+            folder_frame,
             text="选择头像文件夹",
             command=self.select_avatars_folder,
-            width=11,  # 设置按钮宽度，单位是字符
-            height=1,  # 设置按钮高度，单位是字符行数
-            **self.STYLES['button']  # 使用与背景图片按钮相同的样式
+            width=120,
+            height=30,
+            corner_radius=8,
+            colors={
+                'normal': self.COLORS['primary'],
+                'hover': self.COLORS['primary_light'],
+                'pressed': self.COLORS['primary_light'],
+                'text': self.COLORS['text_primary']
+            }
         )
         select_avatar_btn.pack(side='left', padx=(0, 10))
         
-        # 添加鼠标悬浮效果
-        def on_enter_avatar(e):
-            select_avatar_btn['bg'] = self.COLORS['primary_light']  # 改变背景色为浅色
-        def on_leave_avatar(e):
-            select_avatar_btn['bg'] = self.COLORS['primary']  # 恢复原始颜色
-        
-        select_avatar_btn.bind('<Enter>', on_enter_avatar)
-        select_avatar_btn.bind('<Leave>', on_leave_avatar)
-        
-        # 输入框样式优化
+        # 头像文件夹路径输入框
         avatar_entry = tk.Entry(
-            avatar_frame,
+            folder_frame,
             textvariable=self.avatar_path_var,
-            **self.STYLES['entry']  # 使用与背景图片输入框相同的样式
+            **self.STYLES['entry']
         )
-        avatar_entry.pack(side='left', fill='x', expand=True)  # 填充横向并允许扩展
+        avatar_entry.pack(side='left', fill='x', expand=True)
     
     
     def create_layout_settings(self, parent):
         """创建布局设置区域"""
-        layout_frame = ttk.LabelFrame(parent, text="布局设置", padding=10)
+        # 布局设置区域
+        layout_frame = ttk.LabelFrame(
+            parent, 
+            text="布局设置",
+            padding=(10, 0, 10, 10),
+            style='Custom.TLabelframe'
+        )
         layout_frame.pack(fill='x', pady=(0, 10))
+
+        # 设置自定义样式
+        style = ttk.Style()
+        # 完全移除 LabelFrame 的边框
+        style.layout('Custom.TLabelframe', [
+            ('Labelframe.padding', {
+                'sticky': 'nswe',
+                'children': [('Labelframe.text', {'sticky': ''})],
+            })
+        ])
+        style.configure(
+            'Custom.TLabelframe',
+            background=self.COLORS['bg_main'],
+        )
+        style.configure(
+            'Custom.TLabelframe.Label',
+            background=self.COLORS['bg_main'],
+            padding=(0, 0, 0, 0)
+        )
+
+        # 创建单行布局
+        settings_frame = tk.Frame(layout_frame, bg=self.COLORS['bg_main'])
+        settings_frame.pack(fill='x', pady=5)
         
-        # 头像比例选择
-        ratio_frame = tk.Frame(layout_frame, bg='#f0f0f0')
-        ratio_frame.pack(fill='x', pady=5)
-        tk.Label(ratio_frame, text="头像比例:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
-        ttk.Combobox(ratio_frame, 
+        # 头像比例
+        tk.Label(settings_frame, text="头像比例:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
+        ttk.Combobox(settings_frame, 
                     textvariable=self.ratio_var, 
                     values=["4:5", "1:1"],
                     width=10,
                     state="readonly").pack(side='left', padx=(0, 20))
         
-        # 布局方式选择
-        tk.Label(ratio_frame, text="布局方式:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
-        ttk.Combobox(ratio_frame,
+        # 布局方式
+        tk.Label(settings_frame, text="布局方式:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
+        ttk.Combobox(settings_frame,
                     textvariable=self.layout_type_var,
                     values=["左对齐布局", "居中布局"],
                     width=10,
                     state="readonly").pack(side='left')
         
         # 避让区域设置
-        avoid_frame = tk.Frame(layout_frame, bg='#f0f0f0')
+        avoid_frame = tk.Frame(layout_frame, bg=self.COLORS['bg_main'])
         avoid_frame.pack(fill='x', pady=5)
-        
-        tk.Label(avoid_frame, text="避让区域:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
+        tk.Label(avoid_frame, text="避让区域:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         ttk.Combobox(avoid_frame,
                     textvariable=self.avoid_area_var,
                     values=["无", "中部", "下部"],
                     width=10,
                     state="readonly").pack(side='left', padx=(0, 20))
         
-        tk.Label(avoid_frame, text="避让数量:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
+        tk.Label(avoid_frame, text="避让数量:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         ttk.Combobox(avoid_frame,
                     textvariable=self.avoid_count_var,
                     values=["2", "4"],
@@ -491,48 +658,54 @@ class ImageArranger:
                     state="readonly").pack(side='left')
         
         # 边距设置
-        margin_frame = tk.Frame(layout_frame, bg='#f0f0f0')
+        margin_frame = tk.Frame(layout_frame, bg=self.COLORS['bg_main'])
         margin_frame.pack(fill='x', pady=5)
         
         # 上边距
-        tk.Label(margin_frame, text="上边距:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
+        tk.Label(margin_frame, text="上边距:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         self.top_margin_var = tk.StringVar(value="270")
         tk.Entry(margin_frame, textvariable=self.top_margin_var, width=8).pack(side='left', padx=(0, 20))
         
         # 下边距
-        tk.Label(margin_frame, text="下边距:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
+        tk.Label(margin_frame, text="下边距:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         self.bottom_margin_var = tk.StringVar(value="650")
         tk.Entry(margin_frame, textvariable=self.bottom_margin_var, width=8).pack(side='left', padx=(0, 20))
         
         # 左右边距（统一）
-        tk.Label(margin_frame, text="左右边距:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
+        tk.Label(margin_frame, text="左右边距:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         self.side_margin_var = tk.StringVar(value="130")
         tk.Entry(margin_frame, textvariable=self.side_margin_var, width=8).pack(side='left')
     
     def create_avatar_settings(self, parent):
         """创建头像设置区域"""
-        avatar_frame = ttk.LabelFrame(parent, text="头像设置", padding=10)
+        # 使用相同的扁平化样式
+        avatar_frame = ttk.LabelFrame(
+            parent, 
+            text="头像设置",
+            padding=(10, 0, 10, 10),
+            style='Custom.TLabelframe'
+        )
         avatar_frame.pack(fill='x', pady=(0, 10))
         
-        # 姓名字体设置
-        name_font_frame = tk.Frame(avatar_frame, bg='#f0f0f0')
+        # 修改背景色
+        name_font_frame = tk.Frame(avatar_frame, bg=self.COLORS['bg_main'])
         name_font_frame.pack(fill='x', pady=5)
         
-        tk.Label(name_font_frame, text="姓名字体:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
+        tk.Label(name_font_frame, text="姓名字体:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         font_frame, self.name_font_combo = self.create_font_combobox(name_font_frame, self.name_font_var)
         font_frame.pack(side='left', padx=(0, 20))
         
-        tk.Label(name_font_frame, text="字号:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
+        tk.Label(name_font_frame, text="字号:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         tk.Entry(name_font_frame, textvariable=self.name_size_var, width=8).pack(side='left')
         
         # 边框设置
-        border_frame = tk.Frame(avatar_frame, bg='#f0f0f0')
+        border_frame = tk.Frame(avatar_frame, bg=self.COLORS['bg_main'])
         border_frame.pack(fill='x', pady=5)
         
         tk.Checkbutton(border_frame, 
                        text="启用边框",
                        variable=self.border_enabled,
-                       bg='#f0f0f0').pack(side='left', padx=(0, 20))
+                       bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 20))
         
         tk.Button(border_frame,
                   text="边框颜色",
@@ -548,27 +721,33 @@ class ImageArranger:
                   borderwidth=1,
                   command=self.choose_name_color).pack(side='left', padx=(0, 20))
         
-        tk.Label(border_frame, text="边框宽度:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
+        tk.Label(border_frame, text="边框宽度:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         tk.Entry(border_frame, textvariable=self.border_width_var, width=8).pack(side='left')
     
     def create_title_settings(self, parent):
         """创建标题设置区域"""
-        title_frame = ttk.LabelFrame(parent, text="标题设置", padding=10)
+        # 使用相同的扁平化样式
+        title_frame = ttk.LabelFrame(
+            parent, 
+            text="标题设置",
+            padding=(10, 0, 10, 10),
+            style='Custom.TLabelframe'
+        )
         title_frame.pack(fill='x', pady=(0, 10))
         
         # 标题字体设置
-        font_frame = tk.Frame(title_frame, bg='#f0f0f0')
+        font_frame = tk.Frame(title_frame, bg=self.COLORS['bg_main'])
         font_frame.pack(fill='x', pady=5)
         
-        tk.Label(font_frame, text="标题字体:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
+        tk.Label(font_frame, text="标题字体:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         font_frame, self.title_font_combo = self.create_font_combobox(font_frame, self.class_font_var)
         font_frame.pack(side='left', padx=(0, 20))
         
-        tk.Label(font_frame, text="字号:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
+        tk.Label(font_frame, text="字号:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         tk.Entry(font_frame, textvariable=self.class_size_var, width=8).pack(side='left')
         
         # 标题颜色和对齐
-        align_frame = tk.Frame(title_frame, bg='#f0f0f0')
+        align_frame = tk.Frame(title_frame, bg=self.COLORS['bg_main'])
         align_frame.pack(fill='x', pady=5)
         
         tk.Button(align_frame,
@@ -578,7 +757,7 @@ class ImageArranger:
                  borderwidth=1,
                  command=self.choose_title_color).pack(side='left', padx=(0, 20))
         
-        tk.Label(align_frame, text="对齐方式:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
+        tk.Label(align_frame, text="对齐方式:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         ttk.Combobox(align_frame,
                     textvariable=self.title_align_var,
                     values=["左对齐", "居中", "右对齐"],
@@ -586,10 +765,10 @@ class ImageArranger:
                      state="readonly").pack(side='left')
         
         # 标题边距
-        margin_frame = tk.Frame(title_frame, bg='#f0f0f0')
+        margin_frame = tk.Frame(title_frame, bg=self.COLORS['bg_main'])
         margin_frame.pack(fill='x', pady=5)
         
-        tk.Label(margin_frame, text="下边距:", bg='#f0f0f0').pack(side='left', padx=(0, 10))
+        tk.Label(margin_frame, text="下边距:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         tk.Entry(margin_frame, textvariable=self.title_bottom_margin_var, width=8).pack(side='left')
     
     def create_generate_button(self, parent):
@@ -628,10 +807,28 @@ class ImageArranger:
             logging.info(f"已选择背景图片: {file_path}")
     
     def select_avatars_folder(self):
+        """选择头像文件夹"""
         path = filedialog.askdirectory(title="选择头像文件夹")
         if path:
             self.avatars_folder = path
             self.avatar_path_var.set(path)
+            logging.info(f"已选择头像文件夹: {path}")
+            
+            # 检查文件夹结构
+            folders = [f for f in os.listdir(path) 
+                      if os.path.isdir(os.path.join(path, f))]
+            if not folders:
+                messagebox.showwarning(
+                    "警告", 
+                    "所选文件夹内没有找到任何子文件夹。\n请确保头像按照标题分类放在不同的子文件夹中。"
+                )
+            else:
+                logging.info(f"找到 {len(folders)} 个标题文件夹")
+                self.status_var.set(f"已选择头像文件夹，包含 {len(folders)} 个标题")
+        else:
+            self.avatars_folder = None
+            self.avatar_path_var.set("")
+            logging.info("取消选择头像文件夹")
     
     def generate_layout(self):
         """生成布局"""
@@ -1117,8 +1314,12 @@ class ImageArranger:
 
     def preview_layout(self):
         """预览排版效果"""
-        if not self.background_path:
+        if not self.background_path:  # 先检查背景图片路径是否存在
             messagebox.showerror("错误", "请先选择背景图片")
+            return
+        
+        if not self.avatars_folder:  # 再检查头像文件夹路径是否存在
+            messagebox.showerror("错误", "请先选择头像文件夹")
             return
         
         try:
@@ -1130,19 +1331,26 @@ class ImageArranger:
             self.preview_window.after(100)
             
             # 打开背景图片并创建副本
-            background = Image.open(self.background_path).copy()
+            background = Image.open(self.background_path)  # 确保这里 self.background_path 不为 None
             if background.size != (4800, 3200):
                 background = background.resize((4800, 3200))
             
             # 获取第一个文件夹的信息
             class_folders = [f for f in os.listdir(self.avatars_folder) 
-                            if os.path.isdir(os.path.join(self.avatars_folder, f))]
-            if class_folders:
-                first_class = class_folders[0]
-                class_path = os.path.join(self.avatars_folder, first_class)
-                
-                # 处理第一个文件夹的头像和标题
-                self.process_class(background, class_path, first_class)
+                            if os.path.isdir(os.path.join(self.avatars_folder, f))
+                            and f != "排版结果"]
+            
+            if not class_folders:
+                logging.error("未找到任何标题文件夹")
+                messagebox.showerror("错误", "未找到任何标题文件夹")
+                return
+            
+            logging.info(f"找到 {len(class_folders)} 个标题文件夹")
+            first_class = class_folders[0]
+            class_path = os.path.join(self.avatars_folder, first_class)
+            
+            # 处理第一个文件夹的头像和标题
+            self.process_class(background, class_path, first_class)
             
             # 计算缩放比例（调小到60%）
             screen_width = self.window.winfo_screenwidth()
@@ -1979,6 +2187,88 @@ class ImageArranger:
             self.add_hover_effect(btn, self.COLORS['bg_dark'], self.COLORS['bg_light'])
         
         return btn
+
+class RoundedButton(tk.Canvas):
+    def __init__(self, parent, text, command, width=120, height=30, corner_radius=8, **kwargs):
+        super().__init__(parent, width=width, height=height, highlightthickness=0, bg=parent['bg'])
+        
+        # 保存参数
+        self.command = command
+        self.text = text
+        self.corner_radius = corner_radius
+        self.colors = kwargs.get('colors', {
+            'normal': '#367bf0',      # 正常状态颜色
+            'hover': '#5294ff',       # 悬浮状态颜色
+            'pressed': '#2860E1',     # 按下状态颜色
+            'text': 'white'           # 文字颜色
+        })
+        
+        # 创建圆角矩形背景
+        self.states = {}
+        for state in ['normal', 'hover', 'pressed']:
+            self.states[state] = self._create_rounded_rect(self.colors[state])
+            self.itemconfig(self.states[state], state='hidden')
+        
+        # 绘制文字
+        text_x = width // 2
+        text_y = height // 2
+        self.text_item = self.create_text(
+            text_x, text_y,
+            text=text,
+            fill=self.colors['text'],
+            font=('微软雅黑', 10),
+            anchor='center'
+        )
+        
+        # 绑定事件
+        self.bind('<Enter>', self._on_enter)
+        self.bind('<Leave>', self._on_leave)
+        self.bind('<Button-1>', self._on_press)
+        self.bind('<ButtonRelease-1>', self._on_release)
+        
+        # 初始显示正常状态
+        self._show_state('normal')
+    
+    def _create_rounded_rect(self, color):
+        """创建圆角矩形"""
+        x1, y1 = 0, 0
+        x2, y2 = self.winfo_reqwidth(), self.winfo_reqheight()
+        r = self.corner_radius
+        
+        # 使用贝塞尔曲线创建圆角
+        path = [
+            x1+r, y1,                                    # 左上横线起点
+            x2-r, y1,                                    # 右上横线终点
+            x2-r/2, y1, x2, y1+r/2, x2, y1+r,          # 右上角
+            x2, y2-r,                                    # 右边线
+            x2, y2-r/2, x2-r/2, y2, x2-r, y2,          # 右下角
+            x1+r, y2,                                    # 下横线
+            x1+r/2, y2, x1, y2-r/2, x1, y2-r,          # 左下角
+            x1, y1+r,                                    # 左边线
+            x1, y1+r/2, x1+r/2, y1, x1+r, y1           # 左上角
+        ]
+        
+        return self.create_polygon(path, smooth=True, fill=color)
+    
+    def _show_state(self, state):
+        """显示指定状态，隐藏其他状态"""
+        for s in self.states:
+            self.itemconfig(self.states[s], state='hidden')
+        self.itemconfig(self.states[state], state='normal')
+    
+    def _on_enter(self, e):
+        self._show_state('hover')
+    
+    def _on_leave(self, e):
+        self._show_state('normal')
+    
+    def _on_press(self, e):
+        self._show_state('pressed')
+    
+    def _on_release(self, e):
+        self._show_state('hover')
+        if self.command:
+            self.command()
 
 if __name__ == "__main__":
     try:
