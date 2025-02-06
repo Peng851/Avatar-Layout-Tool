@@ -1780,14 +1780,18 @@ class ImageArranger:
                 
                 # 获取圆角系数
                 corner_radius = float(self.corner_radius_var.get()) if self.corner_radius_var.get() else 0
+                logging.info(f"处理头像圆角 - 路径: {avatar_path}")
+                logging.info(f"圆角系数: {corner_radius}")
                 
                 # 如果需要圆角，创建圆角遮罩
                 if corner_radius > 0:
+                    logging.info("开始创建圆角遮罩")
                     mask = Image.new('L', size, 0)
                     draw = ImageDraw.Draw(mask)
                     
                     # 计算圆角半径
                     r = min(size[0], size[1]) * corner_radius
+                    logging.info(f"圆角半径: {r}")
                     
                     # 使用 rounded_rectangle 创建真正的圆角
                     draw.rounded_rectangle(
@@ -1796,15 +1800,20 @@ class ImageArranger:
                         fill=255                        # 填充颜色
                     )
                     
+                    logging.info("圆角遮罩创建完成")
+                    
                     # 应用遮罩
                     img.putalpha(mask)
+                    logging.info("遮罩已应用到图像")
                 
                 # 如果需要添加边框
                 if border_color and border_size > 0:
+                    logging.info(f"添加边框 - 颜色: {border_color}, 宽度: {border_size}")
                     result = Image.new('RGBA', size, border_color)
                     
                     if corner_radius > 0:
                         result.putalpha(mask)
+                        logging.info("边框已应用圆角遮罩")
                     
                     # 计算内部图像尺寸
                     inner_size = (size[0] - 2*border_size, size[1] - 2*border_size)
@@ -1814,10 +1823,13 @@ class ImageArranger:
                     x = (size[0] - inner_size[0]) // 2
                     y = (size[1] - inner_size[1]) // 2
                     result.paste(inner_img, (x, y), inner_img if corner_radius > 0 else None)
+                    logging.info("内部图像已粘贴到边框")
                     
                     return result
                 else:
-                    return img
+                    final_img = img
+                    logging.info(f"返回最终图像 - 大小: {final_img.size}, 模式: {final_img.mode}")
+                    return final_img
         
         except Exception as e:
             logging.error(f"处理头像时出错: {e}")
