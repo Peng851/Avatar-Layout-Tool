@@ -208,6 +208,9 @@ class ImageArranger:
         self.config_file = "arranger_config.json"
         self.load_config()
         
+        # 设置统一的样式
+        self.setup_styles()
+        
         # 创建UI（包括日志文本框）
         self.create_ui()
         
@@ -220,6 +223,31 @@ class ImageArranger:
         
         # 初始化预览窗口
         self.preview_window = None
+    
+    def setup_styles(self):
+        """设置全局样式"""
+        style = ttk.Style()
+        
+        # 完全重写 LabelFrame 的布局，使用最简单的结构
+        style.layout('Custom.TLabelframe', [
+            # 移除 Custom. 前缀，直接使用 Labelframe.Label
+            ('Labelframe.Label', {'sticky': 'nw'})  # 只保留标签，放在左上角
+        ])
+        
+        # 配置标题样式
+        style.configure(
+            'Custom.TLabelframe',
+            background=self.COLORS['bg_main'],
+            borderwidth=0
+        )
+        
+        style.configure(
+            'Custom.TLabelframe.Label',
+            background=self.COLORS['bg_main'],
+            foreground=self.COLORS['text_primary'],
+            font=('微软雅黑', 10),
+            padding=(10, 0, 0, 0)  # 左边距10像素
+        )
     
     def process_font_record(self, record, encoding):
         """处理字体记录"""
@@ -398,6 +426,11 @@ class ImageArranger:
         
         # 批处理模式
         self.batch_mode = tk.BooleanVar(value=False)
+        
+        # 头像设置相关变量
+        self.border_enabled = tk.BooleanVar(value=False)
+        self.border_width_var = tk.StringVar(value="2")
+        self.corner_radius_var = tk.StringVar(value="0")  # 添加圆角变量
     
     def create_ui(self):
         # 创建主容器，使用内边距
@@ -434,7 +467,7 @@ class ImageArranger:
             wrap=tk.WORD,
             width=50,
             height=30,
-            bg=self.COLORS['bg_light'],
+            bg=self.COLORS['bg_main'],
             fg=self.COLORS['text_primary'],
             font=('微软雅黑', 9),
             relief='flat',
@@ -455,7 +488,7 @@ class ImageArranger:
         self.create_title_settings(left_frame)   # 新增：标题设置
         
         # 添加按钮区域
-        button_frame = tk.Frame(left_frame, bg=self.COLORS['bg_light'])
+        button_frame = tk.Frame(left_frame, bg=self.COLORS['bg_main'])
         button_frame.pack(pady=20)
         
         # 预览按钮
@@ -481,14 +514,14 @@ class ImageArranger:
         generate_btn.pack(side='left', padx=20)
         
         # 添加状态栏
-        status_frame = tk.Frame(left_frame, bg=self.COLORS['bg_light'])
+        status_frame = tk.Frame(left_frame, bg=self.COLORS['bg_main'])
         status_frame.pack(fill='x', pady=10)
         
         # 状态文本
         self.status_var = tk.StringVar()
         status_label = tk.Label(status_frame, 
                                textvariable=self.status_var,
-                               bg=self.COLORS['bg_light'])
+                               bg=self.COLORS['bg_main'])
         status_label.pack()
         
         # 进度条
@@ -500,39 +533,19 @@ class ImageArranger:
     
     def create_file_selection(self, parent):
         """创建文件选择区域"""
-        style = ttk.Style()
-        
-        # 完全重写 LabelFrame 的布局，只保留标题
-        style.layout('Custom.TLabelframe', [
-            ('Custom.TLabelframe.Label', {'sticky': 'nw'})  # 只保留标题，放在左上角
-        ])
-        
-        # 配置标题和边框样式
-        style.configure(
-            'Custom.TLabelframe',
-            background=self.COLORS['bg_main'],
-            borderwidth=0                      # 移除边框
-        )
-        
-        style.configure(
-            'Custom.TLabelframe.Label',
-            background=self.COLORS['bg_main'],
-            #foreground=self.COLORS['text_primary'],未来启动
-            foreground='red', 
-            font=('微软雅黑', 10)
-        )
-        
-        # 创建文件选择区域
         file_frame = ttk.LabelFrame(
             parent, 
             text="文件选择",
-            padding=(10, 5, 10, 10),
             style='Custom.TLabelframe'
         )
         file_frame.pack(fill='x', pady=(0, 10))
         
+        # 创建内容容器，减小顶部边距
+        content_frame = tk.Frame(file_frame, bg=self.COLORS['bg_main'])
+        content_frame.pack(fill='x', padx=10, pady=(0, 10))  # 改为10像素的统一边距
+        
         # 背景图片选择
-        bg_frame = tk.Frame(file_frame, bg=self.COLORS['bg_main'])
+        bg_frame = tk.Frame(content_frame, bg=self.COLORS['bg_main'])
         bg_frame.pack(fill='x', pady=5)
         
         # 选择背景图片按钮
@@ -561,7 +574,7 @@ class ImageArranger:
         bg_entry.pack(side='left', fill='x', expand=True)
         
         # 头像文件夹选择
-        folder_frame = tk.Frame(file_frame, bg=self.COLORS['bg_main'])
+        folder_frame = tk.Frame(content_frame, bg=self.COLORS['bg_main'])
         folder_frame.pack(fill='x', pady=5)
         
         # 选择头像文件夹按钮
@@ -678,17 +691,19 @@ class ImageArranger:
     
     def create_avatar_settings(self, parent):
         """创建头像设置区域"""
-        # 使用相同的扁平化样式
         avatar_frame = ttk.LabelFrame(
             parent, 
             text="头像设置",
-            padding=(10, 0, 10, 10),
             style='Custom.TLabelframe'
         )
         avatar_frame.pack(fill='x', pady=(0, 10))
         
-        # 修改背景色
-        name_font_frame = tk.Frame(avatar_frame, bg=self.COLORS['bg_main'])
+        # 创建内容容器
+        content_frame = tk.Frame(avatar_frame, bg=self.COLORS['bg_main'])
+        content_frame.pack(fill='x', padx=10, pady=(10, 10))
+        
+        # 姓名字体设置
+        name_font_frame = tk.Frame(content_frame, bg=self.COLORS['bg_main'])
         name_font_frame.pack(fill='x', pady=5)
         
         tk.Label(name_font_frame, text="姓名字体:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
@@ -696,10 +711,18 @@ class ImageArranger:
         font_frame.pack(side='left', padx=(0, 20))
         
         tk.Label(name_font_frame, text="字号:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
-        tk.Entry(name_font_frame, textvariable=self.name_size_var, width=8).pack(side='left')
+        tk.Entry(name_font_frame, textvariable=self.name_size_var, width=8).pack(side='left', padx=(0, 20))
+        
+        # 将字体颜色按钮移到这里
+        tk.Button(name_font_frame,
+                  text="字体颜色",
+                  bg='white',
+                  relief='solid',
+                  borderwidth=1,
+                  command=self.choose_name_color).pack(side='left', padx=(0, 20))
         
         # 边框设置
-        border_frame = tk.Frame(avatar_frame, bg=self.COLORS['bg_main'])
+        border_frame = tk.Frame(content_frame, bg=self.COLORS['bg_main'])
         border_frame.pack(fill='x', pady=5)
         
         tk.Checkbutton(border_frame, 
@@ -714,62 +737,57 @@ class ImageArranger:
                   borderwidth=1,
                   command=self.choose_border_color).pack(side='left', padx=(0, 20))
         
-        tk.Button(border_frame,                             # 新增字体颜色按钮
-                  text="字体颜色",
-                  bg='white',
-                  relief='solid',
-                  borderwidth=1,
-                  command=self.choose_name_color).pack(side='left', padx=(0, 20))
-        
         tk.Label(border_frame, text="边框宽度:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
-        tk.Entry(border_frame, textvariable=self.border_width_var, width=8).pack(side='left')
+        tk.Entry(border_frame, textvariable=self.border_width_var, width=8).pack(side='left', padx=(0, 20))
+        
+        # 圆角设置
+        tk.Label(border_frame, text="圆角系数:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
+        tk.Entry(border_frame, textvariable=self.corner_radius_var, width=8).pack(side='left')
     
     def create_title_settings(self, parent):
         """创建标题设置区域"""
-        # 使用相同的扁平化样式
         title_frame = ttk.LabelFrame(
             parent, 
             text="标题设置",
-            padding=(10, 0, 10, 10),
             style='Custom.TLabelframe'
         )
         title_frame.pack(fill='x', pady=(0, 10))
         
+        # 创建内容容器
+        content_frame = tk.Frame(title_frame, bg=self.COLORS['bg_main'])
+        content_frame.pack(fill='x', padx=10, pady=(10, 10))
+        
         # 标题字体设置
-        font_frame = tk.Frame(title_frame, bg=self.COLORS['bg_main'])
+        font_frame = tk.Frame(content_frame, bg=self.COLORS['bg_main'])
         font_frame.pack(fill='x', pady=5)
         
         tk.Label(font_frame, text="标题字体:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
-        font_frame, self.title_font_combo = self.create_font_combobox(font_frame, self.class_font_var)
+        font_frame, self.class_font_combo = self.create_font_combobox(font_frame, self.class_font_var)
         font_frame.pack(side='left', padx=(0, 20))
         
         tk.Label(font_frame, text="字号:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
-        tk.Entry(font_frame, textvariable=self.class_size_var, width=8).pack(side='left')
+        tk.Entry(font_frame, textvariable=self.class_size_var, width=8).pack(side='left', padx=(0, 20))
         
-        # 标题颜色和对齐
-        align_frame = tk.Frame(title_frame, bg=self.COLORS['bg_main'])
+        # 将标题颜色按钮移到这里
+        tk.Button(font_frame,
+                  text="标题颜色",
+                  bg='white',
+                  relief='solid',
+                  borderwidth=1,
+                  command=self.choose_title_color).pack(side='left', padx=(0, 20))
+        
+        # 对齐设置
+        align_frame = tk.Frame(content_frame, bg=self.COLORS['bg_main'])
         align_frame.pack(fill='x', pady=5)
         
-        tk.Button(align_frame,
-                 text="标题颜色",
-                 bg='white',
-                 relief='solid',
-                 borderwidth=1,
-                 command=self.choose_title_color).pack(side='left', padx=(0, 20))
-        
         tk.Label(align_frame, text="对齐方式:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
-        ttk.Combobox(align_frame,
-                    textvariable=self.title_align_var,
-                    values=["左对齐", "居中", "右对齐"],
-                    width=10,
-                     state="readonly").pack(side='left')
+        ttk.Combobox(align_frame, textvariable=self.title_align_var, values=["左对齐", "居中", "右对齐"], width=8).pack(side='left', padx=(0, 20))
         
-        # 标题边距
-        margin_frame = tk.Frame(title_frame, bg=self.COLORS['bg_main'])
-        margin_frame.pack(fill='x', pady=5)
+        tk.Label(align_frame, text="底部边距:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
+        tk.Entry(align_frame, textvariable=self.title_bottom_margin_var, width=8).pack(side='left', padx=(0, 20))
         
-        tk.Label(margin_frame, text="下边距:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
-        tk.Entry(margin_frame, textvariable=self.title_bottom_margin_var, width=8).pack(side='left')
+        tk.Label(align_frame, text="左右边距:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
+        tk.Entry(align_frame, textvariable=self.title_side_margin_var, width=8).pack(side='left')
     
     def create_generate_button(self, parent):
         tk.Button(parent,
@@ -1063,40 +1081,16 @@ class ImageArranger:
                     
                     filename, filepath = avatars[current_index]
                     try:
-                        # 打开照片并保持比例裁剪
-                        avatar = Image.open(filepath)
-                        avatar = avatar.convert('RGB')
+                        # 处理头像（包括圆角和边框）
+                        avatar = self.process_avatar(
+                            filepath,
+                            (photo_width, photo_height),
+                            self.border_color if self.border_enabled.get() else None,
+                            int(self.border_width_var.get()) if self.border_enabled.get() else 0
+                        )
                         
-                        # 计算裁剪尺寸以保持比例
-                        target_ratio = 4/5 if self.ratio_var.get() == "4:5" else 1
-                        current_ratio = avatar.width / avatar.height
-                        
-                        if current_ratio > target_ratio:
-                            # 图片太宽，需要裁剪宽度
-                            new_width = int(avatar.height * target_ratio)
-                            left = (avatar.width - new_width) // 2
-                            avatar = avatar.crop((left, 0, left + new_width, avatar.height))
-                        else:
-                            # 图片太高，需要裁剪高度
-                            new_height = int(avatar.width / target_ratio)
-                            top = (avatar.height - new_height) // 2
-                            avatar = avatar.crop((0, top, avatar.width, top + new_height))
-                        
-                        # 调整大小
-                        avatar = avatar.resize((photo_width, photo_height))
-                        
-                        # 添加边框
-                        if self.border_enabled.get():
-                            border_width = int(self.border_width_var.get())
-                            draw.rectangle(
-                                [x-border_width, y-border_width,
-                                 x+photo_width+border_width, y+photo_height+border_width],
-                                outline=self.border_color,
-                                width=border_width
-                            )
-                        
-                        # 粘贴照片
-                        background.paste(avatar, (x, y))
+                        # 使用 alpha 通道粘贴处理后的头像
+                        background.paste(avatar, (x, y), avatar)  # 使用 avatar 作为 mask
                         
                         # 添加姓名 - 恢复姓名显示
                         name = os.path.splitext(filename)[0]
@@ -1597,69 +1591,42 @@ class ImageArranger:
             messagebox.showerror("错误", f"生成预览时出错：\n{str(e)}")
 
     def wrap_text(self, draw, text, font, max_width):
-        """将文字按照最大宽度换行，保持英文单词完整"""
-        if not text:
-            return []
+        """处理文本换行，保留空格"""
+        # 如果文本宽度小于最大宽度，直接返回
+        if draw.textlength(text, font=font) <= max_width:
+            return [text]
         
+        # 保留原始空格，将文本分割成单词
+        words = text.split(' ')
         lines = []
-        current_line = ""
-        current_word = ""
+        current_line = []
+        current_width = 0
         
-        def is_chinese(char):
-            """判断是否为中文字符"""
-            return '\u4e00' <= char <= '\u9fff'
-        
-        def add_word_to_line(word, line):
-            """尝试将单词添加到当前行"""
-            test_line = line + word if line else word
-            return draw.textlength(test_line, font=font) <= max_width, test_line
-        
-        for char in text:
-            if is_chinese(char):
-                # 处理中文字符
-                if current_word:
-                    # 先处理之前的英文单词
-                    fits, new_line = add_word_to_line(current_word, current_line)
-                    if fits:
-                        current_line = new_line
+        for word in words:
+            # 计算当前单词的宽度（包括一个空格）
+            word_width = draw.textlength(word + ' ', font=font)
+            
+            # 如果加上这个单词会超出宽度限制
+            if current_width + word_width > max_width:
+                if current_line:  # 如果当前行有内容
+                    # 将当前行的单词用空格连接并添加到结果中
+                    lines.append(' '.join(current_line))
+                    # 开始新的一行
+                    current_line = [word]
+                    current_width = draw.textlength(word + ' ', font=font)
                 else:
-                    # 处理中文字符
-                    fits, new_line = add_word_to_line(char, current_line)
-                    if fits:
-                        current_line = new_line
-                    else:
-                        if current_line:
-                            lines.append(current_line)
-                        current_line = char
+                    # 如果单个单词就超过最大宽度，强制添加
+                    lines.append(word)
+                    current_line = []
+                    current_width = 0
             else:
-                if char.isspace():
-                    # 处理空格，将当前单词添加到行
-                    if current_word:
-                        fits, new_line = add_word_to_line(current_word, current_line)
-                        if fits:
-                            current_line = new_line
-                        else:
-                            if current_line:
-                                lines.append(current_line)
-                            current_line = current_word
-                    current_word = ""
-                else:
-                    # 累积英文字符
-                    current_word += char
-        
-        # 处理最后剩余的单词
-        if current_word:
-            fits, new_line = add_word_to_line(current_word, current_line)
-            if fits:
-                current_line = new_line
-            else:
-                if current_line:
-                    lines.append(current_line)
-                current_line = current_word
+                # 如果没有超出宽度限制，添加到当前行
+                current_line.append(word)
+                current_width += word_width
         
         # 添加最后一行
         if current_line:
-            lines.append(current_line)
+            lines.append(' '.join(current_line))
         
         return lines
 
@@ -1710,7 +1677,7 @@ class ImageArranger:
 
     def create_font_combobox(self, parent, var, width=20):
         """创建可搜索的字体下拉框"""
-        frame = tk.Frame(parent, bg=self.COLORS['bg_light'])
+        frame = tk.Frame(parent, bg=self.COLORS['bg_main'])
         
         # 创建输入框
         entry = tk.Entry(frame, width=width, textvariable=var, **self.STYLES['entry'])
@@ -1784,57 +1751,78 @@ class ImageArranger:
     def process_avatar(self, avatar_path, size, border_color=None, border_size=0):
         """处理头像图片"""
         try:
-            # 打开并调整头像大小
+            # 打开并裁剪照片
             with Image.open(avatar_path) as img:
-                # 确保图像是 RGBA 模式
+                # 转换为RGB模式
+                img = img.convert('RGB')
+                
+                # 计算裁剪尺寸以保持比例
+                target_ratio = 4/5 if self.ratio_var.get() == "4:5" else 1
+                current_ratio = img.width / img.height
+                
+                if current_ratio > target_ratio:
+                    # 图片太宽，需要裁剪宽度
+                    new_width = int(img.height * target_ratio)
+                    left = (img.width - new_width) // 2
+                    img = img.crop((left, 0, left + new_width, img.height))
+                else:
+                    # 图片太高，需要裁剪高度
+                    new_height = int(img.width / target_ratio)
+                    top = (img.height - new_height) // 2
+                    img = img.crop((0, top, img.width, top + new_height))
+                
+                # 调整大小
+                img = img.resize(size)
+                
+                # 转换为RGBA模式以支持透明度
                 if img.mode != 'RGBA':
                     img = img.convert('RGBA')
                 
+                # 获取圆角系数
+                corner_radius = float(self.corner_radius_var.get()) if self.corner_radius_var.get() else 0
+                
+                # 如果需要圆角，创建圆角遮罩
+                if corner_radius > 0:
+                    mask = Image.new('L', size, 0)
+                    draw = ImageDraw.Draw(mask)
+                    
+                    # 计算圆角半径
+                    r = min(size[0], size[1]) * corner_radius
+                    
+                    # 使用 rounded_rectangle 创建真正的圆角
+                    draw.rounded_rectangle(
+                        [0, 0, size[0]-1, size[1]-1],  # 矩形区域
+                        radius=r,                       # 圆角半径
+                        fill=255                        # 填充颜色
+                    )
+                    
+                    # 应用遮罩
+                    img.putalpha(mask)
+                
                 # 如果需要添加边框
                 if border_color and border_size > 0:
-                    # 先将图像调整到目标大小（减去边框的两倍宽度）
-                    inner_size = size - (border_size * 2)
-                    resized_img = img.resize((inner_size, inner_size), Image.Resampling.LANCZOS)
+                    result = Image.new('RGBA', size, border_color)
                     
-                    # 获取调整后图像的实际尺寸
-                    actual_width, actual_height = resized_img.size
+                    if corner_radius > 0:
+                        result.putalpha(mask)
                     
-                    # 计算边框的外部尺寸
-                    total_width = actual_width + (border_size * 2)
-                    total_height = actual_height + (border_size * 2)
+                    # 计算内部图像尺寸
+                    inner_size = (size[0] - 2*border_size, size[1] - 2*border_size)
+                    inner_img = img.resize(inner_size)
                     
-                    # 创建最终图像（使用计算出的实际尺寸）
-                    result = Image.new('RGBA', (total_width, total_height), (0, 0, 0, 0))
-                    
-                    # 使用 ImageDraw 绘制边框
-                    draw = ImageDraw.Draw(result)
-                    # 外框
-                    draw.rectangle([
-                        (0, 0), 
-                        (total_width - 1, total_height - 1)
-                    ], fill=border_color)
-                    # 内框（清空内部区域）
-                    draw.rectangle([
-                        (border_size, border_size),
-                        (border_size + actual_width - 1, border_size + actual_height - 1)
-                    ], fill=(0, 0, 0, 0))
-                    
-                    # 将调整大小后的图像精确粘贴到边框内
-                    result.paste(resized_img, (border_size, border_size), resized_img)
-                    
-                    # 如果最终尺寸与目标尺寸不同，进行最后的调整
-                    if result.size != (size, size):
-                        result = result.resize((size, size), Image.Resampling.LANCZOS)
+                    # 粘贴内部图像
+                    x = (size[0] - inner_size[0]) // 2
+                    y = (size[1] - inner_size[1]) // 2
+                    result.paste(inner_img, (x, y), inner_img if corner_radius > 0 else None)
                     
                     return result
                 else:
-                    # 如果不需要边框，直接调整大小
-                    return img.resize((size, size), Image.Resampling.LANCZOS)
-                
+                    return img
+        
         except Exception as e:
             logging.error(f"处理头像时出错: {e}")
-            # 创建一个空白的替代图像
-            return Image.new('RGBA', (size, size), (200, 200, 200, 255))
+            logging.error("错误详情:", exc_info=True)
+            return Image.new('RGBA', size, (200, 200, 200, 255))
 
     def save_result(self, image, class_path):
         """保存处理结果"""
@@ -2071,9 +2059,8 @@ class ImageArranger:
             messagebox.showerror("错误", f"生成时出错: {e}")
 
     def export_settings(self, background_path):
-        """导出当前设置到背景图片所在目录"""
+        """导出当前布局设置"""
         settings = {
-            # 布局设置
             'layout': {
                 'ratio': self.ratio_var.get(),
                 'layout_type': self.layout_type_var.get(),
@@ -2083,16 +2070,15 @@ class ImageArranger:
                 'bottom_margin': self.bottom_margin_var.get(),
                 'side_margin': self.side_margin_var.get()
             },
-            # 头像设置
             'avatar': {
                 'name_font': self.name_font_var.get(),
                 'name_size': self.name_size_var.get(),
                 'name_color': self.name_color,
                 'border_enabled': self.border_enabled.get(),
                 'border_color': self.border_color,
-                'border_width': self.border_width_var.get()
+                'border_width': self.border_width_var.get(),
+                'corner_radius': self.corner_radius_var.get()  # 添加圆角系数
             },
-            # 标题设置
             'title': {
                 'font': self.class_font_var.get(),
                 'size': self.class_size_var.get(),
@@ -2144,6 +2130,7 @@ class ImageArranger:
             self.border_enabled.set(avatar.get('border_enabled', True))
             self.border_color = avatar.get('border_color', '#000000')
             self.border_width_var.set(avatar.get('border_width', '2'))
+            self.corner_radius_var.set(avatar.get('corner_radius', '0'))  # 添加圆角系数
             
             # 应用标题设置
             title = settings.get('title', {})
@@ -2184,7 +2171,7 @@ class ImageArranger:
         if is_primary:
             self.add_hover_effect(btn, self.COLORS['primary_light'], self.COLORS['primary'])
         else:
-            self.add_hover_effect(btn, self.COLORS['bg_dark'], self.COLORS['bg_light'])
+            self.add_hover_effect(btn, self.COLORS['bg_dark'], self.COLORS['bg_main'])
         
         return btn
 
