@@ -223,6 +223,8 @@ class ImageArranger:
         
         # 初始化预览窗口
         self.preview_window = None
+        self.preview_canvas = None
+        self.preview_image = None
     
     def setup_styles(self):
         """设置全局样式"""
@@ -411,7 +413,7 @@ class ImageArranger:
         self.title_color = '#000000' #标题颜色
         self.border_color = '#000000' #边框颜色
         self.name_color = '#000000'  # 姓名颜色
-
+        
         # 避让设置
         self.avoid_area_var = tk.StringVar(value="无")
         self.avoid_count_var = tk.StringVar(value="2")  # 新增避让数量变量
@@ -666,7 +668,7 @@ class ImageArranger:
         tk.Label(avoid_frame, text="避让数量:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         ttk.Combobox(avoid_frame,
                     textvariable=self.avoid_count_var,
-                    values=["2", "4"],
+                    values=["1", "2", "3", "4"],
                     width=10,
                     state="readonly").pack(side='left')
         
@@ -677,17 +679,17 @@ class ImageArranger:
         # 上边距
         tk.Label(margin_frame, text="上边距:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         self.top_margin_var = tk.StringVar(value="270")
-        tk.Entry(margin_frame, textvariable=self.top_margin_var, width=8).pack(side='left', padx=(0, 20))
+        ttk.Entry(margin_frame, textvariable=self.top_margin_var, width=8).pack(side='left', padx=(0, 20))
         
         # 下边距
         tk.Label(margin_frame, text="下边距:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         self.bottom_margin_var = tk.StringVar(value="650")
-        tk.Entry(margin_frame, textvariable=self.bottom_margin_var, width=8).pack(side='left', padx=(0, 20))
+        ttk.Entry(margin_frame, textvariable=self.bottom_margin_var, width=8).pack(side='left', padx=(0, 20))
         
         # 左右边距（统一）
         tk.Label(margin_frame, text="左右边距:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
         self.side_margin_var = tk.StringVar(value="130")
-        tk.Entry(margin_frame, textvariable=self.side_margin_var, width=8).pack(side='left')
+        ttk.Entry(margin_frame, textvariable=self.side_margin_var, width=8).pack(side='left')
     
     def create_avatar_settings(self, parent):
         """创建头像设置区域"""
@@ -711,7 +713,7 @@ class ImageArranger:
         font_frame.pack(side='left', padx=(0, 20))
         
         tk.Label(name_font_frame, text="字号:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
-        tk.Entry(name_font_frame, textvariable=self.name_size_var, width=8).pack(side='left', padx=(0, 20))
+        ttk.Entry(name_font_frame, textvariable=self.name_size_var, width=8).pack(side='left', padx=(0, 20))
         
         # 将字体颜色按钮移到这里
         tk.Button(name_font_frame,
@@ -738,11 +740,11 @@ class ImageArranger:
                   command=self.choose_border_color).pack(side='left', padx=(0, 20))
         
         tk.Label(border_frame, text="边框宽度:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
-        tk.Entry(border_frame, textvariable=self.border_width_var, width=8).pack(side='left', padx=(0, 20))
+        ttk.Entry(border_frame, textvariable=self.border_width_var, width=8).pack(side='left', padx=(0, 20))
         
         # 圆角设置
         tk.Label(border_frame, text="圆角系数:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
-        tk.Entry(border_frame, textvariable=self.corner_radius_var, width=8).pack(side='left')
+        ttk.Entry(border_frame, textvariable=self.corner_radius_var, width=8).pack(side='left')
     
     def create_title_settings(self, parent):
         """创建标题设置区域"""
@@ -766,7 +768,7 @@ class ImageArranger:
         font_frame.pack(side='left', padx=(0, 20))
         
         tk.Label(font_frame, text="字号:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
-        tk.Entry(font_frame, textvariable=self.class_size_var, width=8).pack(side='left', padx=(0, 20))
+        ttk.Entry(font_frame, textvariable=self.class_size_var, width=8).pack(side='left', padx=(0, 20))
         
         # 将标题颜色按钮移到这里
         tk.Button(font_frame,
@@ -784,11 +786,8 @@ class ImageArranger:
         ttk.Combobox(align_frame, textvariable=self.title_align_var, values=["左对齐", "居中", "右对齐"], width=8).pack(side='left', padx=(0, 20))
         
         tk.Label(align_frame, text="底部边距:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
-        tk.Entry(align_frame, textvariable=self.title_bottom_margin_var, width=8).pack(side='left', padx=(0, 20))
+        ttk.Entry(align_frame, textvariable=self.title_bottom_margin_var, width=8).pack(side='left', padx=(0, 20))
         
-        tk.Label(align_frame, text="左右边距:", bg=self.COLORS['bg_main']).pack(side='left', padx=(0, 10))
-        tk.Entry(align_frame, textvariable=self.title_side_margin_var, width=8).pack(side='left')
-    
     def create_generate_button(self, parent):
         tk.Button(parent,
                  text="生成排版",
@@ -840,9 +839,7 @@ class ImageArranger:
                     "警告", 
                     "所选文件夹内没有找到任何子文件夹。\n请确保头像按照标题分类放在不同的子文件夹中。"
                 )
-            else:
-                logging.info(f"找到 {len(folders)} 个标题文件夹")
-                self.status_var.set(f"已选择头像文件夹，包含 {len(folders)} 个标题")
+            self.status_var.set(f"已选择头像文件夹，包含 {len(folders)} 个标题")
         else:
             self.avatars_folder = None
             self.avatar_path_var.set("")
@@ -851,7 +848,7 @@ class ImageArranger:
     def generate_layout(self):
         """生成布局"""
         if not self.background_path or not self.avatars_folder:
-            messagebox.showerror("错误", "请先选择背景图片和头像文件夹")
+            messagebox.showwarning("提示", "请先选择背景图片和头像文件夹")
             return
         
         try:
@@ -859,9 +856,8 @@ class ImageArranger:
             
             # 在生成开始时就导出设置
             self.export_settings(self.background_path)
-            logging.info("已导出布局设置")
             
-            # 2. 获取所有标题文件夹
+            # 获取所有标题文件夹
             class_folders = [f for f in os.listdir(self.avatars_folder) 
                             if os.path.isdir(os.path.join(self.avatars_folder, f))
                             and f != "排版结果"]
@@ -871,21 +867,18 @@ class ImageArranger:
                 messagebox.showerror("错误", "未找到任何标题文件夹")
                 return
             
-            logging.info(f"找到 {len(class_folders)} 个标题文件夹")
+            class_folders.sort()  # 按名称排序
             
             # 创建输出文件夹（在上一级目录）
-            parent_dir = os.path.dirname(self.avatars_folder)  # 只获取上一级目录
+            parent_dir = os.path.dirname(self.avatars_folder)
             output_folder = os.path.join(parent_dir, "排版完成")
             if not os.path.exists(output_folder):
                 os.makedirs(output_folder)
-                logging.info(f"创建输出文件夹: {output_folder}")
             
-            # 3. 处理每个标题
+            # 处理每个标题
             total_classes = len(class_folders)
             for i, class_folder in enumerate(class_folders, 1):
                 try:
-                    logging.info(f"开始处理第 {i}/{total_classes} 个标题: {class_folder}")
-                    
                     # 更新进度
                     self.progress_var.set((i-1) / total_classes * 100)
                     self.status_var.set(f"正在处理：{class_folder} ({i}/{total_classes})")
@@ -902,38 +895,40 @@ class ImageArranger:
                     
                     # 使用班级文件夹名作为文件名
                     output_path = os.path.join(output_folder, f"{class_folder}.jpg")
-                    logging.info(f"正在保存: {output_path}")
                     background.save(output_path, quality=95)
-                    logging.info(f"已保存: {output_path}")
                     
                 except Exception as e:
                     logging.error(f"处理标题 {class_folder} 时出错: {e}")
                     messagebox.showerror("错误", f"处理标题 {class_folder} 时出错：\n{str(e)}")
             
-            # 4. 完成处理
+            # 完成处理
             self.progress_var.set(100)
             self.status_var.set("处理完成！")
             logging.info("排版生成完成！")
             
             # 打开输出目录
-            os.startfile(parent_dir)
+            os.startfile(output_folder)
             messagebox.showinfo("完成", "排版已完成！")
+            
         except Exception as e:
             logging.error(f"生成布局时出错: {e}")
             messagebox.showerror("错误", f"生成布局时出错: {e}")
 
     def process_class(self, background, class_path, class_name):
-        """处理单个标题的排版"""
+        """处理单个班级的照片"""
         try:
-            logging.info(f"开始处理标题: {class_name}")
-            logging.info(f"标题路径: {class_path}")
-            
-            # 1. 获取并排序头像文件
+            # 获取所有头像文件
             avatars = []
-            for file in os.listdir(class_path):
-                if file.lower().endswith(('.png', '.jpg', '.jpeg')):
-                    avatars.append((file, os.path.join(class_path, file)))
-            avatars.sort(key=lambda x: x[0])
+            for filename in os.listdir(class_path):
+                if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    filepath = os.path.join(class_path, filename)
+                    avatars.append((filename, filepath))
+            
+            if not avatars:
+                logging.warning(f"文件夹 {class_name} 中没有找到头像文件")
+                return
+            
+            logging.info(f"开始处理标题: {class_name}")
             logging.info(f"找到 {len(avatars)} 个头像文件")
             
             # 定义基本参数
@@ -1346,11 +1341,11 @@ class ImageArranger:
             # 处理第一个文件夹的头像和标题
             self.process_class(background, class_path, first_class)
             
-            # 计算缩放比例（调小到60%）
+            # 计算缩放比例（调整到80%）
             screen_width = self.window.winfo_screenwidth()
             screen_height = self.window.winfo_screenheight()
-            width_scale = (screen_width * 0.6) / 4800
-            height_scale = (screen_height * 0.6) / 3200
+            width_scale = (screen_width * 0.5) / 4800  # 从 0.6 改为 0.8
+            height_scale = (screen_height * 0.5) / 3200  # 从 0.6 改为 0.8
             scale = min(width_scale, height_scale)
             
             # 缩放图片
@@ -1780,18 +1775,14 @@ class ImageArranger:
                 
                 # 获取圆角系数
                 corner_radius = float(self.corner_radius_var.get()) if self.corner_radius_var.get() else 0
-                logging.info(f"处理头像圆角 - 路径: {avatar_path}")
-                logging.info(f"圆角系数: {corner_radius}")
                 
                 # 如果需要圆角，创建圆角遮罩
                 if corner_radius > 0:
-                    logging.info("开始创建圆角遮罩")
                     mask = Image.new('L', size, 0)
                     draw = ImageDraw.Draw(mask)
                     
                     # 计算圆角半径
                     r = min(size[0], size[1]) * corner_radius
-                    logging.info(f"圆角半径: {r}")
                     
                     # 使用 rounded_rectangle 创建真正的圆角
                     draw.rounded_rectangle(
@@ -1800,20 +1791,15 @@ class ImageArranger:
                         fill=255                        # 填充颜色
                     )
                     
-                    logging.info("圆角遮罩创建完成")
-                    
                     # 应用遮罩
                     img.putalpha(mask)
-                    logging.info("遮罩已应用到图像")
                 
                 # 如果需要添加边框
                 if border_color and border_size > 0:
-                    logging.info(f"添加边框 - 颜色: {border_color}, 宽度: {border_size}")
                     result = Image.new('RGBA', size, border_color)
                     
                     if corner_radius > 0:
                         result.putalpha(mask)
-                        logging.info("边框已应用圆角遮罩")
                     
                     # 计算内部图像尺寸
                     inner_size = (size[0] - 2*border_size, size[1] - 2*border_size)
@@ -1823,13 +1809,10 @@ class ImageArranger:
                     x = (size[0] - inner_size[0]) // 2
                     y = (size[1] - inner_size[1]) // 2
                     result.paste(inner_img, (x, y), inner_img if corner_radius > 0 else None)
-                    logging.info("内部图像已粘贴到边框")
                     
                     return result
                 else:
-                    final_img = img
-                    logging.info(f"返回最终图像 - 大小: {final_img.size}, 模式: {final_img.mode}")
-                    return final_img
+                    return img
         
         except Exception as e:
             logging.error(f"处理头像时出错: {e}")
@@ -1870,114 +1853,84 @@ class ImageArranger:
 
     def show_preview(self):
         """显示预览窗口"""
-        if self.preview_window:
-            self.preview_window.destroy()
-        
-        # 创建新窗口
-        self.preview_window = tk.Toplevel(self.window)
-        self.preview_window.title("预览")
-        
-        # 计算合适的窗口大小
-        screen_width = self.window.winfo_screenwidth()
-        screen_height = self.window.winfo_screenheight()
-        
-        # 计算适合的缩放比例（使窗口大小为屏幕的50%）
-        width_scale = (screen_width * 0.5) / 4800
-        height_scale = (screen_height * 0.5) / 3200
-        scale = min(width_scale, height_scale)
-        
-        preview_width = int(4800 * scale)
-        preview_height = int(3200 * scale)
-        
-        # 确保最小高度包含按钮
-        min_height = preview_height + 100  # 增加额外空间给按钮
-        
-        # 创建主框架
-        main_frame = ttk.Frame(self.preview_window)
-        main_frame.pack(fill='both', expand=True, padx=10, pady=10)
-        
-        # 创建画布框架，设置固定高度
-        canvas_frame = ttk.Frame(main_frame)
-        canvas_frame.pack(fill='both', expand=True)
-        
-        # 创建水平和垂直滚动条
-        h_scrollbar = ttk.Scrollbar(canvas_frame, orient='horizontal')
-        v_scrollbar = ttk.Scrollbar(canvas_frame, orient='vertical')
-        canvas = tk.Canvas(canvas_frame, 
-                          width=preview_width,
-                          height=preview_height,
-                          xscrollcommand=h_scrollbar.set,
-                          yscrollcommand=v_scrollbar.set)
-        
-        # 配置滚动条
-        h_scrollbar.config(command=canvas.xview)
-        v_scrollbar.config(command=canvas.yview)
-        
-        # 放置组件
-        h_scrollbar.pack(side='bottom', fill='x')
-        v_scrollbar.pack(side='right', fill='y')
-        canvas.pack(side='left', fill='both', expand=True)  # 添加 expand=True
-        
-        # 创建按钮框架，不允许压缩
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(fill='x', pady=(10, 0))
-        
-        # 添加按钮
-        ttk.Button(button_frame, text="取消", command=self.preview_window.destroy).pack(side='right', padx=5)
-        ttk.Button(button_frame, text="生成", command=self.generate_from_preview).pack(side='right', padx=5)
-        
-        # 添加缩放功能
-        def on_mousewheel(event):
-            if event.state == 4:  # Ctrl键被按下
-                # 获取当前鼠标位置
-                x = canvas.canvasx(event.x)
-                y = canvas.canvasy(event.y)
+        try:
+            # 如果预览窗口已存在，就更新它
+            if self.preview_window and self.preview_window.winfo_exists():
+                # 更新预览图片
+                self.update_preview()
+                return
                 
-                # 根据滚轮方向确定缩放因子
-                scale_factor = 1.1 if event.delta > 0 else 0.9
-                
-                # 执行缩放
-                canvas.scale('all', x, y, scale_factor, scale_factor)
-                
-                # 更新图片
-                canvas.delete('background_image')
-                canvas.create_image(0, 0, image=self.preview_image, anchor='nw', tags='background_image')
-                
-                # 重新创建参考线
-                canvas.delete('reference_line')
-                self.create_preview(canvas, scale * scale_factor)
-                
-                # 更新滚动区域
-                canvas.configure(scrollregion=canvas.bbox('all'))
-        
-        # 添加拖动功能
-        def start_drag(event):
-            canvas.scan_mark(event.x, event.y)
-        
-        def do_drag(event):
-            canvas.scan_dragto(event.x, event.y, gain=1)
-        
-        canvas.bind('<Control-MouseWheel>', on_mousewheel)
-        canvas.bind('<ButtonPress-1>', start_drag)
-        canvas.bind('<B1-Motion>', do_drag)
-        
-        # 保存canvas引用
-        self.preview_canvas = canvas
-        
-        # 设置窗口大小和位置
-        window_width = preview_width + v_scrollbar.winfo_reqwidth()
-        window_height = preview_height + h_scrollbar.winfo_reqheight() + button_frame.winfo_reqheight() + 40
-        
-        # 居中显示窗口
-        x = (screen_width - window_width) // 2
-        y = (screen_height - window_height) // 2
-        self.preview_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
-        
-        # 设置窗口最小大小
-        self.preview_window.minsize(
-            preview_width + v_scrollbar.winfo_reqwidth() + 20,
-            min_height
-        )
+            # 如果预览窗口不存在，创建新窗口
+            self.preview_window = tk.Toplevel(self.window)
+            self.preview_window.title("预览效果")
+            self.preview_window.configure(bg=self.COLORS['bg_light'])
+            
+            # 计算预览图片的尺寸
+            screen_width = self.window.winfo_screenwidth()
+            screen_height = self.window.winfo_screenheight()
+            width_scale = (screen_width * 0.5) / 4800
+            height_scale = (screen_height * 0.5) / 3200
+            self.preview_scale = min(width_scale, height_scale)  # 保存缩放比例
+            
+            preview_width = int(4800 * self.preview_scale)
+            preview_height = int(3200 * self.preview_scale)
+            
+            # 设置窗口大小
+            window_width = preview_width + 200
+            window_height = preview_height + 200
+            
+            # 设置窗口位置（居中）
+            x = (screen_width - window_width) // 2
+            y = (screen_height - window_height) // 2
+            self.preview_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+            
+            # 创建滚动区域
+            canvas_frame = tk.Frame(self.preview_window, bg=self.COLORS['bg_light'])
+            canvas_frame.pack(fill='both', expand=True)
+            
+            # 创建画布和滚动条
+            self.preview_canvas = tk.Canvas(canvas_frame, bg=self.COLORS['bg_light'])
+            h_scrollbar = ttk.Scrollbar(canvas_frame, orient='horizontal', command=self.preview_canvas.xview)
+            v_scrollbar = ttk.Scrollbar(canvas_frame, orient='vertical', command=self.preview_canvas.yview)
+            
+            # 配置画布的滚动
+            self.preview_canvas.configure(
+                xscrollcommand=h_scrollbar.set,
+                yscrollcommand=v_scrollbar.set
+            )
+            
+            # 放置组件
+            h_scrollbar.pack(side='bottom', fill='x')
+            v_scrollbar.pack(side='right', fill='y')
+            self.preview_canvas.pack(side='left', fill='both', expand=True)
+            
+            # 添加按钮
+            button_frame = tk.Frame(self.preview_window, bg=self.COLORS['bg_light'])
+            button_frame.pack(side='bottom', fill='x', padx=10, pady=5)
+            
+            ttk.Button(button_frame, text="关闭", command=self.preview_window.destroy).pack(side='right', padx=5)
+            ttk.Button(button_frame, text="生成", command=self.generate_from_preview).pack(side='right', padx=5)
+            
+            # 初次显示预览图片
+            self.update_preview()
+            
+        except Exception as e:
+            logging.error(f"创建预览窗口时出错: {e}")
+            logging.error("错误详情:", exc_info=True)
+            messagebox.showerror("错误", f"创建预览窗口时出错: {e}")
+
+    def update_preview(self):
+        """更新预览图片"""
+        try:
+            # 创建预览图片
+            self.create_preview(self.preview_canvas, self.preview_scale)
+            
+            # 更新画布上的图片
+            self.preview_canvas.delete("all")  # 清除旧图片
+            self.preview_canvas.create_image(0, 0, image=self.preview_image, anchor='nw')
+            
+        except Exception as e:
+            logging.error(f"更新预览图片时出错: {e}")
 
     def create_preview(self, canvas, scale):
         """在画布上创建预览内容"""
@@ -2275,4 +2228,4 @@ if __name__ == "__main__":
         app.run()
     except Exception as e:
         print(f"程序运行出错: {e}")
-        input("按回车键退出...") 
+        input("按回车键退出...")
